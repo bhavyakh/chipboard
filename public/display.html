@@ -39,61 +39,52 @@
   #gate p { font-size: 1.6vw; color: var(--muted); }
 
   /* ---------- table view ---------- */
-  #table { height: 100vh; display: grid; grid-template-rows: auto 1fr auto; padding: 2.2vh 2.2vw; gap: 2.2vh; }
-  header {
-    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-  }
-  .brand { font-size: 2.4vw; font-weight: 800; letter-spacing: 0.02em; }
-  .brand .suits { color: var(--gold); margin-right: 0.6vw; }
-  .blinds { text-align: center; }
-  .blinds .label { font-size: 1vw; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); }
-  .blinds .value { font-size: 4.4vw; font-weight: 800; line-height: 1; color: var(--gold); }
-  .meta { justify-self: end; text-align: right; font-size: 1.5vw; color: var(--muted); line-height: 1.5; }
-  .meta strong { color: var(--ink); font-weight: 700; }
+  #table { height: 100vh; display: grid; grid-template-columns: 1fr 26vw; }
 
-  #grid { display: grid; gap: 1.6vh 1.2vw; min-height: 0; }
-  .pcard {
-    container-type: size;
-    position: relative;
-    background: var(--card);
-    border: 1px solid var(--card-line);
-    border-radius: 1.4vw;
-    padding: 1.6vh 1.4vw;
-    display: grid; grid-template-rows: auto 1fr auto auto;
-    min-height: 0; overflow: hidden;
-    transition: transform 0.3s, background 0.3s;
+  #board {
+    --rows: 7;
+    --row-h: min(13vh, calc(88vh / var(--rows)));
+    padding: 6vh 3.5vw; display: grid; gap: 0 4vw; align-content: center;
+    grid-auto-flow: column; grid-template-rows: repeat(var(--rows), var(--row-h));
   }
-  .pcard .name { font-size: min(13cqh, 12cqw); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pcard .count { display: flex; align-items: baseline; gap: 3cqw; align-self: center; }
-  .pcard .count .n { font-size: min(44cqh, 40cqw); font-weight: 900; line-height: 0.9; }
-  .pcard .count .unit { font-size: min(9cqh, 8cqw); color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
-  .pcard .money { font-size: min(9cqh, 8cqw); color: var(--muted); }
-  .pcard .money strong { color: var(--ink); }
-  .pcard .badges { display: flex; flex-wrap: wrap; gap: 2cqw; margin-top: 2.5cqh; min-height: 9cqh; }
-  .badge { font-size: min(7cqh, 6cqw); padding: 0.6cqh 3cqw; border-radius: 99px; background: rgba(255,255,255,0.10); }
-  .pcard.heat-2 .count .n { color: var(--hot-2); }
-  .pcard.heat-3 .count .n { color: var(--hot-3); }
-  .pcard .crown {
-    position: absolute; top: 5cqh; right: 6cqw;
-    font-size: min(7cqh, 6cqw); font-weight: 800; letter-spacing: 0.1em;
-    color: #1a1206; background: var(--gold); padding: 0.8cqh 3cqw; border-radius: 99px;
+  .prow {
+    display: grid; grid-template-columns: 1fr auto 2.2em; align-items: center; gap: 1.6vw;
+    font-size: calc(var(--row-h) * 0.4);
+    border-bottom: 1px solid var(--card-line);
+    padding: 0 0.8vw; border-radius: 0.6vw;
+    will-change: transform;
   }
-  .pcard.bump { animation: bump 0.9s ease; }
+  .prow .name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prow .amt { font-size: 0.55em; color: var(--muted); }
+  .prow .n { font-size: 1.3em; font-weight: 900; text-align: right; line-height: 1; }
+  .prow.heat-2 .n { color: var(--hot-2); }
+  .prow.heat-3 .n { color: var(--hot-3); }
+  .prow.top .name { color: var(--gold); }
+  .prow.zero { opacity: 0.45; }
+  .prow.bump { animation: bump 1.2s ease; }
   @keyframes bump {
-    0% { transform: scale(1); background: var(--card); }
-    25% { transform: scale(1.06); background: rgba(232, 194, 106, 0.35); }
-    100% { transform: scale(1); background: var(--card); }
+    0%, 100% { background: transparent; }
+    20% { background: rgba(232, 194, 106, 0.28); }
   }
 
-  footer {
-    display: flex; justify-content: space-between; align-items: center; gap: 2vw;
-    font-size: 1.6vw; color: var(--muted);
-    border-top: 1px solid var(--card-line); padding-top: 1.6vh;
+  aside {
+    background: rgba(255, 255, 255, 0.035); border-left: 1px solid var(--card-line);
+    padding: 6vh 2.4vw; display: flex; flex-direction: column; gap: 4.5vh; min-height: 0; overflow: hidden;
   }
-  footer strong { color: var(--ink); }
-  footer .awards { display: flex; gap: 2.5vw; }
-  footer .awards span b { color: var(--gold); }
-  .empty { display: grid; place-content: center; text-align: center; font-size: 2.2vw; color: var(--muted); }
+  .brand { font-size: 1.6vw; font-weight: 800; }
+  #playing { font-size: 1.15vw; color: var(--muted); margin-top: 0.6vh; }
+  #playing b { color: var(--ink); }
+  .brand .suits { color: var(--gold); margin-right: 0.5vw; }
+  .stat .label, .award .label {
+    font-size: 0.95vw; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.6vh;
+  }
+  .stat .v { font-size: 3.2vw; font-weight: 800; line-height: 1.05; }
+  .stat .v.gold { color: var(--gold); font-size: 4.6vw; }
+  .stat .sub { font-size: 1.15vw; color: var(--muted); margin-top: 0.4vh; }
+  .awards { display: flex; flex-direction: column; gap: 2.6vh; margin-top: auto; }
+  .award .who { font-size: 1.8vw; font-weight: 700; }
+  .award .who span { color: var(--gold); margin-left: 0.5vw; }
+  .empty { grid-row: 1 / -1; display: grid; place-content: center; text-align: center; font-size: 2.2vw; color: var(--muted); }
 
   /* ---------- lobby / welcome ---------- */
   #lobby {
@@ -175,19 +166,13 @@
 </section>
 
 <section id="table" class="hidden">
-  <header>
-    <div class="brand"><span class="suits">♠♥</span><span id="brand"></span></div>
-    <div class="blinds"><div class="label">Blinds</div><div class="value" id="blinds"></div></div>
-    <div class="meta">
-      <div id="buyin-terms"></div>
-      <div>Playing <strong id="elapsed">0:00</strong> · <span id="now"></span></div>
-    </div>
-  </header>
-  <main id="grid"></main>
-  <footer>
-    <div>On the table <strong id="total-money"></strong> · <span id="total-chips"></span></div>
+  <main id="board"></main>
+  <aside>
+    <div><div class="brand"><span class="suits">♠♥</span><span id="brand"></span></div><div class="sub" id="playing">Playing <b id="elapsed">0:00</b> · <span id="now"></span></div></div>
+    <div class="stat"><div class="label">Blinds</div><div class="v gold" id="blinds"></div><div class="sub" id="buyin-terms"></div></div>
+    <div class="stat"><div class="label">On the table</div><div class="v" id="total-money"></div><div class="sub" id="total-sub"></div></div>
     <div class="awards" id="awards"></div>
-  </footer>
+  </aside>
 </section>
 
 <div id="scene" class="hidden">
@@ -260,41 +245,44 @@
     $('buyin-terms').textContent = terms;
 
     const n = S.players.length;
-    const grid = $('grid');
+    const board = $('board');
+    // Remember where each row was, so re-sorting can slide rows instead of jumping.
+    const before = new Map([...board.querySelectorAll('.prow')].map((el) => [el.dataset.id, el.getBoundingClientRect().top]));
+
     if (!n) {
-      grid.style.gridTemplateColumns = '1fr';
-      grid.style.gridTemplateRows = '1fr';
-      grid.innerHTML = '<div class="empty">No players yet — add them from your phone.</div>';
+      board.style.setProperty('--rows', 1);
+      board.innerHTML = '<div class="empty">No players yet — add them from your phone.</div>';
     } else {
-      const rows = n <= 4 ? 1 : n <= 10 ? 2 : 3;
-      const cols = Math.ceil(n / rows);
-      grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-      grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+      const cols = n > 8 ? 2 : 1;
+      board.style.setProperty('--rows', Math.max(5, Math.ceil(n / cols)));
 
-      const maxBuy = Math.max(...S.players.map((p) => p.buyins));
-      const leaders = S.players.filter((p) => p.buyins === maxBuy);
-      const labels = Object.fromEntries((M.playerActions || []).map((a) => [a.event, a.label]));
+      const sorted = [...S.players].sort((a, b) => b.buyins - a.buyins || a.id - b.id);
+      const maxBuy = sorted[0].buyins;
+      const topIsUnique = maxBuy >= 2 && sorted.filter((p) => p.buyins === maxBuy).length === 1;
 
-      grid.innerHTML = S.players.map((p) => {
-        const heat = p.buyins >= 3 ? 'heat-3' : p.buyins === 2 ? 'heat-2' : '';
-        const crown = maxBuy >= 2 && leaders.length === 1 && leaders[0] === p ? '<div class="crown">ATM</div>' : '';
-        const badges = Object.entries(p.counts || {})
-          .filter(([ev, c]) => c > 0 && labels[ev])
-          .map(([ev, c]) => `<span class="badge">${esc(labels[ev])} ×${c}</span>`).join('');
-        return `<div class="pcard ${heat}" data-id="${p.id}">
-          ${crown}
-          <div class="name">${esc(p.name)}</div>
-          <div class="count"><span class="n">${p.buyins}</span><span class="unit">${p.buyins === 1 ? 'buy-in' : 'buy-ins'}</span></div>
-          <div class="money"><strong>${M.currency}${fmt(p.buyins * M.buyIn)}</strong> · ${fmt(p.buyins * M.chipsPerBuyIn)} chips</div>
-          <div class="badges">${badges}</div>
+      board.innerHTML = sorted.map((p, i) => {
+        const cls = [
+          p.buyins >= 3 ? 'heat-3' : p.buyins === 2 ? 'heat-2' : '',
+          i === 0 && topIsUnique ? 'top' : '',
+          p.buyins === 0 ? 'zero' : '',
+        ].join(' ');
+        return `<div class="prow ${cls}" data-id="${p.id}">
+          <span class="name">${esc(p.name)}</span>
+          <span class="amt">${M.currency}${fmt(p.buyins * M.buyIn)}</span>
+          <span class="n">${p.buyins}</span>
         </div>`;
       }).join('');
 
-      // flash cards whose buy-ins went up
-      for (const p of S.players) {
-        const before = prevBuyins.get(p.id);
-        if (before !== undefined && p.buyins > before) {
-          grid.querySelector(`[data-id="${p.id}"]`)?.classList.add('bump');
+      for (const el of board.querySelectorAll('.prow')) {
+        const id = el.dataset.id;
+        const p = S.players.find((x) => String(x.id) === id);
+        const old = prevBuyins.get(p.id);
+        if (old !== undefined && p.buyins > old) el.classList.add('bump');
+        if (before.has(id)) {
+          const dy = before.get(id) - el.getBoundingClientRect().top;
+          if (dy) {
+            el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 600, easing: 'cubic-bezier(.2,.8,.2,1)' });
+          }
         }
       }
     }
@@ -303,7 +291,7 @@
 
     const totalBuy = S.players.reduce((a, p) => a + p.buyins, 0);
     $('total-money').textContent = `${M.currency}${fmt(totalBuy * M.buyIn)}`;
-    $('total-chips').textContent = `${fmt(totalBuy * M.chipsPerBuyIn)} chips · ${n} player${n === 1 ? '' : 's'}`;
+    $('total-sub').textContent = `${totalBuy} buy-in${totalBuy === 1 ? '' : 's'} · ${n} player${n === 1 ? '' : 's'}`;
     $('awards').innerHTML = awards().join('');
     tickClock();
   }
@@ -320,15 +308,19 @@
     return best && !tie ? best : null;
   }
 
+  function award(label, l) {
+    return `<div class="award"><div class="label">${esc(label)}</div><div class="who">${esc(l.p.name)}<span>${l.v}</span></div></div>`;
+  }
+
   function awards() {
     const out = [];
     const atm = leader((p) => (p.buyins >= 2 ? p.buyins : 0));
-    if (atm) out.push(`<span>ATM of the night: <b>${esc(atm.p.name)}</b> (${atm.v})</span>`);
+    if (atm) out.push(award('ATM of the night', atm));
     for (const a of M.playerActions || []) {
       const l = leader((p) => (p.counts && p.counts[a.event]) || 0);
-      if (l) out.push(`<span>${esc(a.award || 'Most ' + a.label.toLowerCase())}: <b>${esc(l.p.name)}</b> (${l.v})</span>`);
+      if (l) out.push(award(a.award || 'Most ' + a.label.toLowerCase(), l));
     }
-    return out.slice(0, 3);
+    return out;
   }
 
   function tickClock() {
