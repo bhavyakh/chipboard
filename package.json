@@ -1,0 +1,13 @@
+{
+  "name": "poker-night",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Home-game dashboard: buy-ins on the big screen, controlled from your phone.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

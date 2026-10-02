@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b2a1e">
+<link rel="manifest" href="/manifest.json">
+<title>Poker Night — Remote</title>
+<style>
+  :root {
+    --bg: #071d14;
+    --panel: #0e2c20;
+    --panel-2: #143a2b;
+    --line: rgba(255, 255, 255, 0.09);
+    --ink: #f4efe2;
+    --muted: rgba(244, 239, 226, 0.6);
+    --gold: #e8c26a;
+    --red: #e5484d;
+    --green: #2fb36d;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: var(--font); color: var(--ink); font-size: 16px;
+    font-variant-numeric: tabular-nums;
+    padding: env(safe-area-inset-top) 0 calc(76px + env(safe-area-inset-bottom));
+    -webkit-user-select: none; user-select: none;
+  }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+  button:active { transform: scale(0.96); }
+  input { font: inherit; }
+
+  .top {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px; background: rgba(7, 29, 20, 0.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .top .title { font-weight: 800; flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .top .title small { font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex: none; }
+  .dot.off { background: var(--red); }
+  .chip-btn { padding: 8px 12px; border-radius: 10px; background: var(--panel-2); font-size: 14px; font-weight: 600; }
+  .chip-btn[disabled] { opacity: 0.35; }
+
+  main { padding: 12px 16px; display: grid; gap: 12px; }
+  .tab { display: none; gap: 12px; }
+  .tab.active { display: grid; }
+
+  .add { display: flex; gap: 8px; }
+  .add input {
+    flex: 1; min-width: 0; padding: 12px 14px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--ink);
+  }
+  .add button { padding: 0 18px; border-radius: 12px; background: var(--gold); color: #1a1206; font-weight: 700; }
+
+  .player { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+  .prow { display: flex; align-items: center; gap: 10px; }
+  .pname { flex: 1; min-width: 0; font-weight: 700; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pname small { display: block; font-weight: 500; font-size: 13px; color: var(--muted); }
+  .stepper { display: flex; align-items: center; gap: 4px; }
+  .stepper button { width: 44px; height: 44px; border-radius: 12px; background: var(--panel-2); font-size: 22px; font-weight: 700; }
+  .stepper button.plus { background: var(--gold); color: #1a1206; }
+  .stepper .n { min-width: 34px; text-align: center; font-size: 22px; font-weight: 800; }
+  .more { width: 36px; height: 44px; border-radius: 10px; background: transparent; color: var(--muted); font-size: 20px; }
+  #players { display: grid; gap: 10px; }
+  .acts { display: flex; gap: 5px; }
+  .acts button { flex: 1 1 auto; padding: 9px 6px; border-radius: 10px; background: var(--panel-2); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .acts button.allin { background: rgba(229, 72, 77, 0.22); color: #ffb3b5; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .grid button { min-height: 64px; padding: 8px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); font-weight: 600; font-size: 15px; }
+  h2 { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--panel); padding: 4px; border-radius: 12px; }
+  .seg button { padding: 12px; border-radius: 9px; font-weight: 700; background: transparent; color: var(--muted); }
+  .seg button.on { background: var(--gold); color: #1a1206; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row input { width: 80px; padding: 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); text-align: center; }
+  .wide { width: 100%; padding: 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-weight: 600; }
+  .danger { color: #ffb3b5; }
+  .hint { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .empty { text-align: center; padding: 28px 12px; color: var(--muted); }
+
+  nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    display: grid; grid-template-columns: repeat(3, 1fr) auto;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); gap: 6px;
+    background: rgba(7, 29, 20, 0.95); backdrop-filter: blur(8px); border-top: 1px solid var(--line);
+  }
+  nav button { padding: 12px 4px; border-radius: 12px; background: transparent; color: var(--muted); font-weight: 700; }
+  nav button.on { background: var(--panel-2); color: var(--ink); }
+  nav .clear { background: var(--red); color: #fff; padding: 12px 14px; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    background: #000; color: #fff; padding: 10px 16px; border-radius: 99px; font-size: 14px;
+    opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 9; max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 0.92; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <span class="dot off" id="dot"></span>
+  <div class="title"><span id="title">Poker Night</span> <small id="blinds-small"></small></div>
+  <button class="chip-btn" id="undo" disabled>↶ Undo</button>
+</div>
+
+<main>
+  <!-- PLAYERS -->
+  <section class="tab active" id="tab-players">
+    <form class="add" id="add-form" autocomplete="off">
+      <input id="add-name" placeholder="Add player" maxlength="24" autocapitalize="words" enterkeyhint="done">
+      <button type="submit">Add</button>
+    </form>
+    <div id="players"></div>
+  </section>
+
+  <!-- SOUNDS -->
+  <section class="tab" id="tab-sounds">
+    <h2>Soundboard</h2>
+    <div class="grid" id="soundboard"></div>
+    <h2>Announcements</h2>
+    <div class="grid" id="announcements"></div>
+  </section>
+
+  <!-- SCREEN -->
+  <section class="tab" id="tab-screen">
+    <h2>Monitor shows</h2>
+    <div class="seg" id="mode">
+      <button data-mode="lobby">Welcome screen</button>
+      <button data-mode="table">Buy-in board</button>
+    </div>
+
+    <h2>Shot clock</h2>
+    <div class="grid" id="clock-btns">
+      <button data-s="30">30 s</button>
+      <button data-s="60">60 s</button>
+      <button data-s="120">2 min</button>
+    </div>
+
+    <h2>Blinds</h2>
+    <div class="row">
+      <input id="sb" type="number" inputmode="numeric" min="1">
+      <span>/</span>
+      <input id="bb" type="number" inputmode="numeric" min="1">
+      <button class="chip-btn" id="set-blinds" style="flex:1; padding:12px">Update blinds</button>
+    </div>
+
+    <h2>Night</h2>
+    <button class="wide danger" id="reset">Reset night (clears all players)</button>
+    <p class="hint" id="urls"></p>
+  </section>
+</main>
+
+<nav>
+  <button class="on" data-tab="players">Players</button>
+  <button data-tab="sounds">Sounds</button>
+  <button data-tab="screen">Screen</button>
+  <button class="clear" id="clear" title="Clear the monitor">✕</button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = (n) => Number(n).toLocaleString('en-IN');
+  const buzz = () => navigator.vibrate && navigator.vibrate(12);
+
+  let S = null;
+  let M = null;
+
+  function getPin() { try { return localStorage.getItem('pn-pin') || ''; } catch { return ''; } }
+  function setPin(p) { try { localStorage.setItem('pn-pin', p); } catch {} }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  async function act(action, payload = {}) {
+    buzz();
+    try {
+      const res = await fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Pin': getPin() },
+        body: JSON.stringify({ action, ...payload }),
+      });
+      const data = await res.json();
+      if (res.status === 401) {
+        const p = prompt('PIN for this remote:');
+        if (p !== null) { setPin(p.trim()); return act(action, payload); }
+        return null;
+      }
+      if (!data.ok) toast(data.error || 'Something went wrong');
+      return data;
+    } catch {
+      toast('Not connected to the laptop');
+      return null;
+    }
+  }
+
+  // ---------- render ----------
+  function render() {
+    if (!S) return;
+    $('title').textContent = M.title;
+    $('blinds-small').textContent = `${S.blinds.sb}/${S.blinds.bb}`;
+    $('undo').disabled = !M.canUndo;
+
+    const list = $('players');
+    if (!S.players.length) {
+      list.innerHTML = '<div class="empty">No one at the table yet.<br>Add players above — each starts with one buy-in.</div>';
+    } else {
+      list.innerHTML = S.players.map((p) => `
+        <div class="player" data-id="${p.id}">
+          <div class="prow">
+            <div class="pname">${esc(p.name)}<small>${M.currency}${fmt(p.buyins * M.buyIn)} · ${fmt(p.buyins * M.chipsPerBuyIn)} chips</small></div>
+            <div class="stepper">
+              <button data-act="minus" aria-label="Remove a buy-in">−</button>
+              <span class="n">${p.buyins}</span>
+              <button class="plus" data-act="plus" aria-label="Add a buy-in">+</button>
+            </div>
+            <button class="more" data-act="more" aria-label="Rename or remove">⋯</button>
+          </div>
+          <div class="acts">
+            ${(M.playerActions || []).map((a) => `<button class="${a.event === 'allin' ? 'allin' : ''}" data-act="event" data-event="${esc(a.event)}">${esc(a.label)}</button>`).join('')}
+            <button data-act="clock">Clock</button>
+            <button data-act="welcome">Hello</button>
+          </div>
+        </div>`).join('');
+    }
+
+    $('soundboard').innerHTML = (M.soundboard || []).map((s, i) => `<button data-i="${i}">${esc(s.label)}</button>`).join('');
+    $('announcements').innerHTML = (M.announcements || []).map((a, i) => `<button data-i="${i}">${esc(a.label)}</button>`).join('');
+
+    for (const b of $('mode').children) b.classList.toggle('on', b.dataset.mode === S.mode);
+    if (document.activeElement !== $('sb') && document.activeElement !== $('bb')) {
+      $('sb').value = S.blinds.sb;
+      $('bb').value = S.blinds.bb;
+    }
+    $('urls').textContent = M.controlUrls.length
+      ? `Monitor: open /display on the laptop. Remote: ${M.controlUrls.join(' or ')}`
+      : '';
+  }
+
+  // ---------- events ----------
+  $('add-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('add-name').value.trim();
+    if (!name) return;
+    const r = await act('addPlayer', { name });
+    if (r && r.ok) $('add-name').value = '';
+  });
+
+  $('players').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = Number(btn.closest('.player').dataset.id);
+    const p = S.players.find((x) => x.id === id);
+    switch (btn.dataset.act) {
+      case 'plus': return act('buyin', { id, delta: 1 });
+      case 'minus': return act('buyin', { id, delta: -1 });
+      case 'event': return act('trigger', { id, event: btn.dataset.event });
+      case 'clock': return act('clock', { id, seconds: 30 });
+      case 'welcome': return act('welcome', { id });
+      case 'more': {
+        const name = prompt(`Rename ${p.name} — or type DELETE to remove them`, p.name);
+        if (name === null) return;
+        if (name.trim().toUpperCase() === 'DELETE') return act('removePlayer', { id });
+        if (name.trim() && name.trim() !== p.name) return act('renamePlayer', { id, name });
+      }
+    }
+  });
+
+  $('undo').addEventListener('click', async () => {
+    const r = await act('undo');
+    if (r && r.ok) toast(`Undid: ${r.undone}`);
+  });
+  $('clear').addEventListener('click', () => act('clearFx'));
+
+  $('soundboard').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) act('sound', { sound: M.soundboard[b.dataset.i].sound });
+  });
+  $('announcements').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) act('announce', { index: Number(b.dataset.i) });
+  });
+  $('mode').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) act('setMode', { mode: b.dataset.mode });
+  });
+  $('clock-btns').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) act('clock', { seconds: Number(b.dataset.s) });
+  });
+  $('set-blinds').addEventListener('click', async () => {
+    const r = await act('setBlinds', { sb: $('sb').value, bb: $('bb').value });
+    if (r && r.ok) { document.activeElement.blur(); toast('Blinds updated'); }
+  });
+  $('reset').addEventListener('click', () => {
+    if (confirm('Reset the night? All players and buy-ins are cleared (Undo can bring them back).')) act('resetNight');
+  });
+
+  document.querySelector('nav').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-tab]');
+    if (!b) return;
+    buzz();
+    for (const x of document.querySelectorAll('nav button[data-tab]')) x.classList.toggle('on', x === b);
+    for (const t of document.querySelectorAll('.tab')) t.classList.toggle('active', t.id === `tab-${b.dataset.tab}`);
+    window.scrollTo(0, 0);
+  });
+
+  // ---------- live connection ----------
+  function connect() {
+    const es = new EventSource('/events');
+    es.onopen = () => $('dot').classList.remove('off');
+    es.onerror = () => $('dot').classList.add('off');
+    es.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'state') {
+        S = msg.state;
+        M = msg.meta;
+        render();
+      }
+    };
+  }
+  connect();
+</script>
+</body>
+</html>

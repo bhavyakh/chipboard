@@ -1,0 +1,426 @@
+'use strict';
+
+// Poker Night — zero-dependency server.
+// The laptop opens /display (full-screen on the monitor); a phone opens /control.
+// State changes go phone → POST /api/action → server → Server-Sent Events → every screen.
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+const ROOT = __dirname;
+const PORT = Number(process.env.PORT) || 4242;
+const CONFIG_PATH = path.join(ROOT, 'config.json');
+const DATA_DIR = path.join(ROOT, 'data');
+const STATE_PATH = path.join(DATA_DIR, 'state.json');
+const UNDO_LIMIT = 200;
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+};
+
+// ---------- config & state ----------
+
+function loadConfig(fallback = {}) {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  } catch (err) {
+    console.error(`[config] could not read config.json — keeping previous config. ${err.message}`);
+    return fallback;
+  }
+}
+
+let config = loadConfig();
+
+function freshState() {
+  return {
+    players: [],
+    blinds: { sb: 20, bb: 50, ...(config.blinds || {}) },
+    mode: 'lobby', // 'lobby' (welcome screen) | 'table'
+    startedAt: null,
+    nextId: 1,
+  };
+}
+
+function loadState() {
+  try {
+    return { ...freshState(), ...JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) };
+  } catch {
+    return freshState();
+  }
+}
+
+let state = loadState();
+const history = []; // [{ label, snapshot }]
+
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 150);
+}
+function saveNow() {
+  clearTimeout(saveTimer);
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const tmp = STATE_PATH + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(state, null, 2));
+  fs.renameSync(tmp, STATE_PATH);
+}
+
+// ---------- broadcasting ----------
+
+const clients = new Set();
+
+function send(res, msg) {
+  res.write(`data: ${JSON.stringify(msg)}\n\n`);
+}
+function broadcast(msg) {
+  for (const res of clients) send(res, msg);
+}
+
+function publicMeta() {
+  return {
+    title: config.title || 'Poker Night',
+    currency: config.currency || '₹',
+    buyIn: config.buyIn || 1000,
+    chipsPerBuyIn: config.chipsPerBuyIn || 2000,
+    playerActions: config.playerActions || [],
+    announcements: (config.announcements || []).map((a) => ({ label: a.label || a.title })),
+    soundboard: config.soundboard || [],
+    pinRequired: Boolean(config.pin),
+    controlUrls: lanUrls('/control'),
+    canUndo: history.length > 0,
+  };
+}
+
+function stateMessage() {
+  return { type: 'state', state, meta: publicMeta() };
+}
+function broadcastState() {
+  broadcast(stateMessage());
+}
+function fx(payload) {
+  broadcast({ type: 'fx', fx: payload });
+}
+
+// ---------- scenes ----------
+
+const fmt = (n) => Number(n).toLocaleString('en-IN');
+
+function pick(v) {
+  return Array.isArray(v) ? v[Math.floor(Math.random() * v.length)] : v;
+}
+
+function fill(value, vars) {
+  if (typeof value !== 'string') return value;
+  return value.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
+
+function resolveScene(event, player, extra = {}) {
+  const base = pick((config.scenes || {})[event]) || {};
+  const key = player ? player.name.trim().toLowerCase() : null;
+  const custom = key ? pick(((config.playerScenes || {})[key] || {})[event]) : null;
+  const scene = { ...base, ...(custom || {}) };
+  if (!Object.keys(scene).length) return null;
+
+  const buyIn = config.buyIn || 1000;
+  const chips = config.chipsPerBuyIn || 2000;
+  const vars = {
+    currency: config.currency || '₹',
+    buyInFmt: fmt(buyIn),
+    chipsPerBuyInFmt: fmt(chips),
+    sb: state.blinds.sb,
+    bb: state.blinds.bb,
+    ...(player && {
+      name: player.name,
+      buyins: player.buyins,
+      total: fmt(player.buyins * buyIn),
+      chips: fmt(player.buyins * chips),
+      allins: (player.counts && player.counts.allin) || 0,
+      count: (player.counts && player.counts[event]) || 0,
+    }),
+    ...extra,
+  };
+  const out = {};
+  for (const [k, v] of Object.entries(scene)) out[k] = fill(v, vars);
+  out.event = event;
+  return out;
+}
+
+function showScene(event, player) {
+  const scene = resolveScene(event, player);
+  if (scene) fx({ kind: 'scene', scene });
+}
+
+// ---------- actions ----------
+
+function findPlayer(id) {
+  const p = state.players.find((x) => x.id === Number(id));
+  if (!p) throw new Error('Player not found');
+  return p;
+}
+
+function cleanName(name) {
+  const n = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+  if (!n) throw new Error('Name is empty');
+  return n;
+}
+
+// Each action returns an undo label (string) when it changed state, or nothing.
+const actions = {
+  addPlayer({ name }) {
+    const n = cleanName(name);
+    const existing = state.players.find((p) => p.name.toLowerCase() === n.toLowerCase());
+    if (existing) throw new Error(`${existing.name} is already at the table`);
+    const player = { id: state.nextId++, name: n, buyins: 1, counts: {}, joinedAt: Date.now() };
+    state.players.push(player);
+    if (!state.startedAt) state.startedAt = Date.now();
+    if (config.welcomeOnJoin !== false) showScene('welcome', player);
+    return `add ${n}`;
+  },
+
+  renamePlayer({ id, name }) {
+    const p = findPlayer(id);
+    const n = cleanName(name);
+    const old = p.name;
+    p.name = n;
+    return `rename ${old} → ${n}`;
+  },
+
+  removePlayer({ id }) {
+    const p = findPlayer(id);
+    state.players = state.players.filter((x) => x !== p);
+    return `remove ${p.name}`;
+  },
+
+  buyin({ id, delta }) {
+    const p = findPlayer(id);
+    const d = Number(delta) >= 0 ? 1 : -1;
+    const next = Math.max(0, p.buyins + d);
+    if (next === p.buyins) return;
+    p.buyins = next;
+    if (d > 0 && next >= 2) showScene('rebuy', p);
+    return `${d > 0 ? '+1' : '−1'} buy-in for ${p.name}`;
+  },
+
+  trigger({ id, event }) {
+    const p = findPlayer(id);
+    const ev = String(event);
+    p.counts = p.counts || {};
+    p.counts[ev] = (p.counts[ev] || 0) + 1;
+    showScene(ev, p);
+    return `${ev} for ${p.name}`;
+  },
+
+  welcome({ id }) {
+    showScene('welcome', findPlayer(id));
+  },
+
+  announce({ index }) {
+    const a = (config.announcements || [])[Number(index)];
+    if (!a) throw new Error('Unknown announcement');
+    const { label, ...scene } = a;
+    fx({ kind: 'scene', scene: { ...scene, event: 'announcement' } });
+  },
+
+  sound({ sound }) {
+    fx({ kind: 'sound', sound: String(sound) });
+  },
+
+  clock({ id, seconds }) {
+    const p = id != null ? findPlayer(id) : null;
+    const s = Math.min(300, Math.max(5, Number(seconds) || 30));
+    fx({ kind: 'clock', seconds: s, name: p ? p.name : null, endsAt: Date.now() + s * 1000 });
+  },
+
+  clearFx() {
+    fx({ kind: 'clear' });
+  },
+
+  setMode({ mode }) {
+    const m = mode === 'lobby' ? 'lobby' : 'table';
+    if (m === state.mode) return;
+    state.mode = m;
+    return `switch to ${m}`;
+  },
+
+  setBlinds({ sb, bb }) {
+    const s = Math.round(Number(sb));
+    const b = Math.round(Number(bb));
+    if (!(s > 0 && b >= s)) throw new Error('Blinds must be positive and BB ≥ SB');
+    state.blinds = { sb: s, bb: b };
+    fx({ kind: 'scene', scene: { title: `Blinds ${s} / ${b}`, subtitle: 'New level', sound: 'ding', theme: 'purple', duration: 5, event: 'blinds' } });
+    return `blinds → ${s}/${b}`;
+  },
+
+  resetNight() {
+    const keepBlinds = state.blinds;
+    state = { ...freshState(), blinds: keepBlinds };
+    return 'reset night';
+  },
+};
+
+function runAction(name, payload) {
+  if (name === 'undo') {
+    const last = history.pop();
+    if (!last) throw new Error('Nothing to undo');
+    state = last.snapshot;
+    return { undone: last.label, changed: true };
+  }
+  const fn = actions[name];
+  if (!fn) throw new Error(`Unknown action: ${name}`);
+  const snapshot = JSON.parse(JSON.stringify(state));
+  const label = fn(payload || {});
+  if (label) {
+    history.push({ label, snapshot });
+    if (history.length > UNDO_LIMIT) history.shift();
+    return { changed: true };
+  }
+  return { changed: false };
+}
+
+// ---------- http ----------
+
+function lanUrls(suffix = '') {
+  const urls = [];
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const i of list || []) {
+      if (i.family === 'IPv4' && !i.internal) urls.push(`http://${i.address}:${PORT}${suffix}`);
+    }
+  }
+  return urls;
+}
+
+function sendJson(res, code, body) {
+  res.writeHead(code, { 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store' });
+  res.end(JSON.stringify(body));
+}
+
+function serveFile(res, baseDir, relPath) {
+  const file = path.normalize(path.join(baseDir, relPath));
+  if (!file.startsWith(baseDir + path.sep)) return sendJson(res, 403, { error: 'Forbidden' });
+  fs.stat(file, (err, stat) => {
+    if (err || !stat.isFile()) return sendJson(res, 404, { error: 'Not found' });
+    res.writeHead(200, {
+      'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
+      'Content-Length': stat.size,
+      'Cache-Control': 'no-cache',
+    });
+    fs.createReadStream(file).pipe(res);
+  });
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => {
+      data += chunk;
+      if (data.length > 16 * 1024) reject(new Error('Body too large'));
+    });
+    req.on('end', () => {
+      try {
+        resolve(data ? JSON.parse(data) : {});
+      } catch {
+        reject(new Error('Invalid JSON'));
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+const PUBLIC = path.join(ROOT, 'public');
+const MEDIA = path.join(ROOT, 'media');
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, 'http://localhost');
+  const p = decodeURIComponent(url.pathname);
+
+  if (req.method === 'GET' && p === '/events') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-store',
+      Connection: 'keep-alive',
+    });
+    res.write('retry: 1000\n\n');
+    clients.add(res);
+    send(res, stateMessage());
+    req.on('close', () => clients.delete(res));
+    return;
+  }
+
+  if (req.method === 'POST' && p === '/api/action') {
+    if (config.pin && req.headers['x-pin'] !== String(config.pin)) {
+      return sendJson(res, 401, { ok: false, error: 'Wrong PIN' });
+    }
+    try {
+      const body = await readBody(req);
+      const result = runAction(String(body.action), body);
+      if (result.changed) {
+        save();
+        broadcastState();
+      }
+      return sendJson(res, 200, { ok: true, ...result });
+    } catch (err) {
+      return sendJson(res, 400, { ok: false, error: err.message });
+    }
+  }
+
+  if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
+  if (p === '/') {
+    res.writeHead(302, { Location: '/control' });
+    return res.end();
+  }
+  if (p === '/display') return serveFile(res, PUBLIC, 'display.html');
+  if (p === '/control') return serveFile(res, PUBLIC, 'control.html');
+  if (p.startsWith('/media/')) return serveFile(res, MEDIA, p.slice('/media/'.length));
+  return serveFile(res, PUBLIC, p.slice(1));
+});
+
+// Keep SSE connections alive through idle periods.
+setInterval(() => {
+  for (const res of clients) res.write(': ping\n\n');
+}, 20000);
+
+// Edit config.json while the server runs — screens pick up the change within a second.
+fs.watchFile(CONFIG_PATH, { interval: 1000 }, () => {
+  config = loadConfig(config);
+  console.log('[config] reloaded');
+  broadcastState();
+});
+
+function shutdown() {
+  try {
+    saveNow();
+  } finally {
+    process.exit(0);
+  }
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+server.listen(PORT, '0.0.0.0', () => {
+  const lan = lanUrls();
+  console.log('\n  ♠ Poker Night is running\n');
+  console.log(`  Monitor (this laptop):  http://localhost:${PORT}/display`);
+  if (lan.length) {
+    for (const u of lan) console.log(`  Phone (same Wi-Fi):     ${u}/control`);
+  } else {
+    console.log('  Phone: no Wi-Fi address found — connect the laptop to Wi-Fi.');
+  }
+  console.log(`\n  ${state.players.length} player(s) restored from data/state.json. Ctrl+C to stop.\n`);
+});

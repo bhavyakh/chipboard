@@ -1,0 +1,86 @@
+{
+  "title": "Poker Night",
+  "currency": "₹",
+  "buyIn": 1000,
+  "chipsPerBuyIn": 2000,
+  "blinds": { "sb": 20, "bb": 50 },
+  "pin": "",
+  "welcomeOnJoin": true,
+
+  "playerActions": [
+    { "event": "allin", "label": "All-in" },
+    { "event": "shipit", "label": "Ship it" },
+    { "event": "badbeat", "label": "Bad beat" }
+  ],
+
+  "scenes": {
+    "welcome": {
+      "title": "Welcome, {name}",
+      "subtitle": "{currency}{buyInFmt} buy-in · {chipsPerBuyInFmt} chips · blinds {sb}/{bb}",
+      "sound": "fanfare",
+      "theme": "gold",
+      "duration": 6
+    },
+    "rebuy": {
+      "title": "{name} reloads",
+      "subtitle": "Buy-in #{buyins} · {currency}{total} in tonight",
+      "sound": "chaching",
+      "theme": "green",
+      "duration": 5
+    },
+    "allin": {
+      "title": "{name} is ALL IN",
+      "subtitle": "All-in #{count} tonight",
+      "sound": "drumroll",
+      "theme": "red",
+      "duration": 7
+    },
+    "shipit": {
+      "title": "SHIP IT",
+      "subtitle": "{name} scoops the pot",
+      "sound": "chaching",
+      "theme": "gold",
+      "confetti": true,
+      "duration": 5
+    },
+    "badbeat": {
+      "title": "Bad beat",
+      "subtitle": "Thoughts and prayers for {name}",
+      "sound": "sadtrombone",
+      "theme": "blue",
+      "duration": 6
+    }
+  },
+
+  "playerScenes": {
+    "pluto": {
+      "allin": {
+        "title": "PLUTO IS ALL IN",
+        "subtitle": "Edit me in config.json → playerScenes → pluto",
+        "sound": "airhorn",
+        "theme": "red",
+        "image": "",
+        "duration": 8
+      }
+    }
+  },
+
+  "announcements": [
+    { "label": "Bomb pot", "title": "BOMB POT", "subtitle": "Next hand · everyone in", "sound": "airhorn", "theme": "red", "duration": 6 },
+    { "label": "Straddle", "title": "Straddle's on", "subtitle": "UTG straddles to 100", "sound": "ding", "theme": "purple", "duration": 5 },
+    { "label": "Last orbit", "title": "Last orbit", "subtitle": "Make it count", "sound": "ding", "theme": "blue", "duration": 6 },
+    { "label": "Break", "title": "Break", "subtitle": "Back in 10", "sound": "ding", "theme": "black", "duration": 10 }
+  ],
+
+  "soundboard": [
+    { "label": "Airhorn", "sound": "airhorn" },
+    { "label": "Ship it", "sound": "chaching" },
+    { "label": "Sad trombone", "sound": "sadtrombone" },
+    { "label": "Drumroll", "sound": "drumroll" },
+    { "label": "Applause", "sound": "applause" },
+    { "label": "Buzzer", "sound": "buzzer" },
+    { "label": "Ba-dum-tss", "sound": "rimshot" },
+    { "label": "Fanfare", "sound": "fanfare" },
+    { "label": "Ding", "sound": "ding" }
+  ]
+}
