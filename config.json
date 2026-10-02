@@ -53,10 +53,10 @@
   },
 
   "playerScenes": {
-    "pluto": {
+    "ginna": {
       "allin": {
-        "title": "PLUTO IS ALL IN",
-        "subtitle": "Edit me in config.json → playerScenes → pluto",
+        "title": "GINNA IS ALL IN",
+        "subtitle": "Edit me in config.json → playerScenes → ginna",
         "sound": "airhorn",
         "theme": "red",
         "image": "",

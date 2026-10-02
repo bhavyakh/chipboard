@@ -40,16 +40,16 @@ Edit while the server runs; the screens update within a second.
 - `buyIn`, `chipsPerBuyIn`, `blinds`: the game. Currently ₹1,000 = 2,000 chips at 20/50.
 - `pin`: set e.g. `"4321"` and the remote asks for it once.
 - `scenes`: what the monitor shows for each event (`welcome`, `rebuy`, `allin`, `shipit`, `badbeat`).
-- `playerScenes`: overrides for specific people, matched by name (case doesn't matter). This is where Pluto lives:
+- `playerScenes`: overrides for specific people, matched by name (case doesn't matter). This is where Ginna lives:
 
 ```json
 "playerScenes": {
-  "pluto": {
+  "ginna": {
     "allin": {
-      "title": "PLUTO IS ALL IN",
+      "title": "GINNA IS ALL IN",
       "subtitle": "Lock the doors",
-      "image": "media/pluto.gif",
-      "sound": "media/pluto.mp3",
+      "image": "media/ginna.gif",
+      "sound": "media/ginna.mp3",
       "theme": "red",
       "duration": 8
     }
