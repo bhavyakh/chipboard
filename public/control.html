@@ -6,14 +6,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0b2a1e">
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="/manifest.json">
 <title>Poker Night — Remote</title>
 <style>
   :root {
-    --bg: #071d14;
-    --panel: #0e2c20;
-    --panel-2: #143a2b;
+    --bg: #000000;
+    --panel: #121212;
+    --panel-2: #222222;
     --line: rgba(255, 255, 255, 0.09);
     --ink: #f4efe2;
     --muted: rgba(244, 239, 226, 0.6);
@@ -37,7 +37,7 @@
   .top {
     position: sticky; top: 0; z-index: 5;
     display: flex; align-items: center; gap: 8px;
-    padding: 12px 16px; background: rgba(7, 29, 20, 0.92); backdrop-filter: blur(8px);
+    padding: 12px 16px; background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--line);
   }
   .top .title { font-weight: 800; flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -90,7 +90,7 @@
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
     display: grid; grid-template-columns: repeat(3, 1fr) auto;
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); gap: 6px;
-    background: rgba(7, 29, 20, 0.95); backdrop-filter: blur(8px); border-top: 1px solid var(--line);
+    background: rgba(0, 0, 0, 0.94); backdrop-filter: blur(8px); border-top: 1px solid var(--line);
   }
   nav button { padding: 12px 4px; border-radius: 12px; background: transparent; color: var(--muted); font-weight: 700; }
   nav button.on { background: var(--panel-2); color: var(--ink); }

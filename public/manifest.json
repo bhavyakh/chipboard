@@ -3,6 +3,6 @@
   "short_name": "Poker Night",
   "start_url": "/control",
   "display": "standalone",
-  "background_color": "#071d14",
-  "theme_color": "#0b2a1e"
+  "background_color": "#000000",
+  "theme_color": "#000000"
 }
