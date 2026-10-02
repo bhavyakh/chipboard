@@ -8,6 +8,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 4242;
@@ -19,6 +20,9 @@ const SOUNDS_DIR = path.join(ROOT, 'media', 'sounds');
 const AUDIO_EXT = ['.mp3', '.m4a', '.wav', '.ogg', '.aac'];
 const MAX_UPLOAD = 15 * 1024 * 1024;
 const UNDO_LIMIT = 200;
+const AUTH_PATH = path.join(ROOT, 'auth.json');
+const SESSIONS_PATH = path.join(DATA_DIR, 'sessions.json');
+const SESSION_DAYS = 30;
 
 const MIME = {
   '.aac': 'audio/aac',
@@ -116,6 +120,67 @@ function customSounds() {
 // Bumped whenever a file in public/ changes, so open remotes reload themselves.
 let assetVersion = Date.now();
 
+// ---------- login ----------
+// auth.json (git-ignored) holds { username, salt, hash } — create or change it with `npm run set-login`.
+// Without auth.json the remote is open, as before.
+
+function loadAuth() {
+  try {
+    return JSON.parse(fs.readFileSync(AUTH_PATH, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+let auth = loadAuth();
+
+function loadSessions() {
+  try {
+    return JSON.parse(fs.readFileSync(SESSIONS_PATH, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+let sessions = loadSessions(); // sha256(token) → expiry ms
+function saveSessions() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const now = Date.now();
+  for (const [k, exp] of Object.entries(sessions)) if (exp < now) delete sessions[k];
+  fs.writeFileSync(SESSIONS_PATH, JSON.stringify(sessions));
+}
+
+const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
+
+function checkPassword(username, password) {
+  if (!auth) return false;
+  const key = crypto.scryptSync(String(password || ''), Buffer.from(auth.salt, 'hex'), 64);
+  const passOk = crypto.timingSafeEqual(key, Buffer.from(auth.hash, 'hex'));
+  const userOk = String(username || '').trim().toLowerCase() === String(auth.username).toLowerCase();
+  return passOk && userOk;
+}
+
+function sessionToken(req) {
+  const m = /(?:^|;\s*)pn_session=([a-f0-9]{64})/.exec(req.headers.cookie || '');
+  return m ? m[1] : null;
+}
+
+function isLoggedIn(req) {
+  if (!auth) return true;
+  const t = sessionToken(req);
+  return Boolean(t && sessions[sha256(t)] > Date.now());
+}
+
+// Slow down password guessing: 10 misses per address per 10 minutes.
+const failures = new Map();
+function tooManyFailures(ip) {
+  const f = failures.get(ip);
+  return Boolean(f && f.count >= 10 && Date.now() - f.since < 10 * 60 * 1000);
+}
+function noteFailure(ip) {
+  const f = failures.get(ip);
+  if (!f || Date.now() - f.since > 10 * 60 * 1000) failures.set(ip, { count: 1, since: Date.now() });
+  else f.count++;
+}
+
 // ---------- broadcasting ----------
 
 const clients = new Set();
@@ -139,7 +204,7 @@ function publicMeta() {
     customSounds: customSounds(),
     buttons: library.buttons,
     assetVersion,
-    pinRequired: Boolean(config.pin),
+    loginEnabled: Boolean(auth),
     controlUrls: lanUrls('/control'),
     canUndo: history.length > 0,
   };
@@ -393,6 +458,11 @@ function lanUrls(suffix = '') {
   return urls;
 }
 
+function redirect(res, to) {
+  res.writeHead(302, { Location: to, 'Cache-Control': 'no-store' });
+  res.end();
+}
+
 function sendJson(res, code, body) {
   res.writeHead(code, { 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(body));
@@ -450,10 +520,41 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && p === '/api/action') {
-    if (config.pin && req.headers['x-pin'] !== String(config.pin)) {
-      return sendJson(res, 401, { ok: false, error: 'Wrong PIN' });
+  if (req.method === 'POST' && p === '/api/login') {
+    const ip = req.socket.remoteAddress;
+    if (tooManyFailures(ip)) return sendJson(res, 429, { ok: false, error: 'Too many tries — wait 10 minutes' });
+    try {
+      const { username, password } = await readBody(req);
+      if (!checkPassword(username, password)) {
+        noteFailure(ip);
+        return sendJson(res, 401, { ok: false, error: 'Wrong username or password' });
+      }
+      failures.delete(ip);
+      const token = crypto.randomBytes(32).toString('hex');
+      sessions[sha256(token)] = Date.now() + SESSION_DAYS * 864e5;
+      saveSessions();
+      res.setHeader('Set-Cookie', `pn_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`);
+      return sendJson(res, 200, { ok: true });
+    } catch (err) {
+      return sendJson(res, 400, { ok: false, error: err.message });
     }
+  }
+
+  if (req.method === 'POST' && p === '/api/logout') {
+    const t = sessionToken(req);
+    if (t) {
+      delete sessions[sha256(t)];
+      saveSessions();
+    }
+    res.setHeader('Set-Cookie', 'pn_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (req.method === 'POST' && (p === '/api/action' || p === '/api/upload') && !isLoggedIn(req)) {
+    return sendJson(res, 401, { ok: false, login: true, error: 'Please log in again' });
+  }
+
+  if (req.method === 'POST' && p === '/api/action') {
     try {
       const body = await readBody(req);
       const result = runAction(String(body.action), body);
@@ -468,9 +569,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && p === '/api/upload') {
-    if (config.pin && req.headers['x-pin'] !== String(config.pin)) {
-      return sendJson(res, 401, { ok: false, error: 'Wrong PIN' });
-    }
     const original = path.basename(url.searchParams.get('name') || 'sound.mp3');
     const ext = path.extname(original).toLowerCase();
     if (!AUDIO_EXT.includes(ext)) {
@@ -503,12 +601,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
-  if (p === '/') {
-    res.writeHead(302, { Location: '/control' });
-    return res.end();
-  }
+  if (p === '/') return redirect(res, '/control');
   if (p === '/display') return serveFile(res, PUBLIC, 'display.html');
-  if (p === '/control') return serveFile(res, PUBLIC, 'control.html');
+  if (p === '/login') {
+    if (isLoggedIn(req) && auth) return redirect(res, '/control');
+    return serveFile(res, PUBLIC, 'login.html');
+  }
+  if (p === '/control') {
+    if (!isLoggedIn(req)) return redirect(res, '/login');
+    return serveFile(res, PUBLIC, 'control.html');
+  }
+  if (p === '/login.html' || p === '/control.html') return redirect(res, p.replace('.html', ''));
   if (p.startsWith('/media/')) return serveFile(res, MEDIA, p.slice('/media/'.length));
   return serveFile(res, PUBLIC, p.slice(1));
 });
@@ -542,6 +645,11 @@ fs.watch(PUBLIC, () => {
   }, 300);
 });
 
+fs.watchFile(AUTH_PATH, { interval: 1000 }, () => {
+  auth = loadAuth();
+  console.log(`[login] ${auth ? 'login updated' : 'login removed — remote is open'}`);
+});
+
 function shutdown() {
   try {
     saveNow();
@@ -561,5 +669,6 @@ server.listen(PORT, '0.0.0.0', () => {
   } else {
     console.log('  Phone: no Wi-Fi address found — connect the laptop to Wi-Fi.');
   }
+  console.log(auth ? `\n  Remote login: on (user "${auth.username}")` : '\n  Remote login: off — run `npm run set-login` to add one');
   console.log(`\n  ${state.players.length} player(s) restored from data/state.json. Ctrl+C to stop.\n`);
 });

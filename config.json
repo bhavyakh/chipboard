@@ -4,7 +4,6 @@
   "buyIn": 1000,
   "chipsPerBuyIn": 2000,
   "blinds": { "sb": 20, "bb": 50 },
-  "pin": "",
   "welcomeOnJoin": true,
 
   "playerActions": [

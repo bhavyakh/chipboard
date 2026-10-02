@@ -17,6 +17,11 @@ The terminal prints two links:
 - **Phone:** open the `http://192.168.x.x:4242/control` link. In Safari, Share → Add to Home Screen
   turns it into an app.
 
+**Login:** the remote asks for a username and password; each phone stays logged in for 30 days.
+The monitor page (`/display`) needs no login. To change the login, run `npm run set-login`
+(this signs every phone out). To turn it off, delete `auth.json`. Only a salted hash is stored,
+and `auth.json` is git-ignored.
+
 If the phone can't connect, allow incoming connections for `node` when macOS asks (or in
 System Settings → Network → Firewall). Keep the lid open; `caffeinate -d` in another terminal stops the Mac sleeping.
 
@@ -42,7 +47,6 @@ Use **Reset night** at the start of each game.
 Edit while the server runs; the screens update within a second.
 
 - `buyIn`, `chipsPerBuyIn`, `blinds`: the game. Currently ₹1,000 = 2,000 chips at 20/50.
-- `pin`: set e.g. `"4321"` and the remote asks for it once.
 - `scenes`: what the monitor shows for each event (`welcome`, `rebuy`, `allin`, `fold`, `shipit`, `badbeat`, `cement`).
 - `playerScenes`: overrides for specific people, matched by name (case doesn't matter). This is where Ginna lives:
 

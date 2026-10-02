@@ -206,6 +206,7 @@
 
     <h2>Night</h2>
     <button class="wide danger" id="reset">Reset night (clears all players)</button>
+    <button class="wide" id="logout">Log out of this phone</button>
     <p class="hint" id="urls"></p>
   </section>
 </main>
@@ -238,8 +239,7 @@
   let S = null;
   let M = null;
 
-  function getPin() { try { return localStorage.getItem('pn-pin') || ''; } catch { return ''; } }
-  function setPin(p) { try { localStorage.setItem('pn-pin', p); } catch {} }
+  const toLogin = () => location.replace('/login');
 
   let toastTimer;
   function toast(msg) {
@@ -255,15 +255,11 @@
     try {
       const res = await fetch('/api/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Pin': getPin() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, ...payload }),
       });
       const data = await res.json();
-      if (res.status === 401) {
-        const p = prompt('PIN for this remote:');
-        if (p !== null) { setPin(p.trim()); return act(action, payload); }
-        return null;
-      }
+      if (res.status === 401) return toLogin();
       if (!data.ok) toast(data.error || 'Something went wrong');
       return data;
     } catch {
@@ -327,6 +323,7 @@
       $('sb').value = S.blinds.sb;
       $('bb').value = S.blinds.bb;
     }
+    $('logout').classList.toggle('hidden', !M.loginEnabled);
     $('urls').textContent = M.controlUrls.length
       ? `Monitor: open /display on the laptop. Remote: ${M.controlUrls.join(' or ')}`
       : '';
@@ -445,15 +442,9 @@
     if (!file) return;
     if (file.size > 15 * 1024 * 1024) return toast('That file is over 15 MB');
     toast(`Uploading ${file.name}…`);
-    const send = () => fetch(`/api/upload?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'X-Pin': getPin() }, body: file });
     try {
-      let res = await send();
-      if (res.status === 401) {
-        const p = prompt('PIN for this remote:');
-        if (p === null) return;
-        setPin(p.trim());
-        res = await send();
-      }
+      const res = await fetch(`/api/upload?name=${encodeURIComponent(file.name)}`, { method: 'POST', body: file });
+      if (res.status === 401) return toLogin();
       const d = await res.json();
       toast(d.ok ? 'Sound added — tap it to play' : d.error || 'Upload failed');
     } catch {
@@ -486,6 +477,11 @@
   $('set-blinds').addEventListener('click', async () => {
     const r = await act('setBlinds', { sb: $('sb').value, bb: $('bb').value });
     if (r && r.ok) { document.activeElement.blur(); toast('Blinds updated'); }
+  });
+  $('logout').addEventListener('click', async () => {
+    if (!confirm('Log out of the remote on this phone?')) return;
+    await fetch('/api/logout', { method: 'POST' }).catch(() => {});
+    toLogin();
   });
   $('reset').addEventListener('click', () => {
     if (confirm('Reset the night? All players and buy-ins are cleared (Undo can bring them back).')) act('resetNight');

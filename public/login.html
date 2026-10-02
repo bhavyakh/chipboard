@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json">
+<title>Poker Night — Log in</title>
+<style>
+  :root {
+    --bg: #000000;
+    --panel: #121212;
+    --panel-2: #222222;
+    --line: rgba(255, 255, 255, 0.09);
+    --ink: #f4efe2;
+    --muted: rgba(244, 239, 226, 0.6);
+    --gold: #e8c26a;
+    --red: #e5484d;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); }
+  body {
+    font-family: var(--font); color: var(--ink);
+    display: grid; place-items: center; padding: 16px;
+  }
+  form { width: 100%; max-width: 360px; display: grid; gap: 12px; }
+  .suits { color: var(--gold); font-size: 28px; letter-spacing: 6px; text-align: center; }
+  h1 { font-size: 28px; font-weight: 900; text-align: center; margin-bottom: 12px; }
+  label { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  input {
+    width: 100%; padding: 14px; border-radius: 12px; font: inherit; font-size: 17px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--ink);
+  }
+  input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+  button {
+    margin-top: 8px; padding: 15px; border: 0; border-radius: 12px; font: inherit; font-size: 17px; font-weight: 800;
+    background: var(--gold); color: #1a1206; cursor: pointer;
+  }
+  button[disabled] { opacity: 0.6; }
+  #err { min-height: 20px; color: #ffb3b5; font-size: 14px; text-align: center; }
+</style>
+</head>
+<body>
+<form id="form" autocomplete="on">
+  <div class="suits">♠♥♦♣</div>
+  <h1>Poker Night</h1>
+  <label for="u">Username</label>
+  <input id="u" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+  <label for="p">Password</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <button type="submit" id="go">Log in</button>
+  <div id="err" role="alert"></div>
+</form>
+<script>
+  const form = document.getElementById('form');
+  const err = document.getElementById('err');
+  const go = document.getElementById('go');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.textContent = '';
+    go.disabled = true;
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: form.username.value, password: form.password.value }),
+      });
+      const data = await res.json();
+      if (data.ok) return location.replace('/control');
+      err.textContent = data.error || 'Could not log in';
+      form.password.select();
+    } catch {
+      err.textContent = 'Not connected to the laptop';
+    }
+    go.disabled = false;
+  });
+</script>
+</body>
+</html>
