@@ -3,7 +3,7 @@
   "currency": "₹",
   "buyIn": 1000,
   "chipsPerBuyIn": 2000,
-  "blinds": { "sb": 20, "bb": 50 },
+  "blinds": { "sb": 10, "bb": 20, "straddle": 40 },
   "welcomeOnJoin": true,
 
   "playerActions": [
@@ -16,7 +16,7 @@
   "scenes": {
     "welcome": {
       "title": "Welcome, {name}",
-      "subtitle": "{currency}{buyInFmt} buy-in · {chipsPerBuyInFmt} chips · blinds {sb}/{bb}",
+      "subtitle": "{currency}{buyInFmt} buy-in · {chipsPerBuyInFmt} chips · blinds {blinds}",
       "sound": "fanfare",
       "theme": "gold",
       "duration": 6
@@ -85,7 +85,7 @@
 
   "announcements": [
     { "label": "Bomb pot", "title": "BOMB POT", "subtitle": "Next hand · everyone in", "sound": "airhorn", "theme": "red", "duration": 6 },
-    { "label": "Straddle", "title": "Straddle's on", "subtitle": "UTG straddles to 100", "sound": "ding", "theme": "purple", "duration": 5 },
+    { "label": "Straddle", "title": "Straddle's on", "subtitle": "UTG straddles to 40", "sound": "ding", "theme": "purple", "duration": 5 },
     { "label": "Last orbit", "title": "Last orbit", "subtitle": "Make it count", "sound": "ding", "theme": "blue", "duration": 6 },
     { "label": "Break", "title": "Break", "subtitle": "Back in 10", "sound": "ding", "theme": "black", "duration": 10 }
   ],

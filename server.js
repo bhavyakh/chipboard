@@ -248,6 +248,7 @@ function resolveScene(event, player, extra = {}) {
     chipsPerBuyInFmt: fmt(chips),
     sb: state.blinds.sb,
     bb: state.blinds.bb,
+    blinds: blindsText(state.blinds),
     ...(player && {
       name: player.name,
       buyins: player.buyins,
@@ -399,13 +400,16 @@ const actions = {
     return `switch to ${m}`;
   },
 
-  setBlinds({ sb, bb }) {
+  setBlinds({ sb, bb, straddle }) {
     const s = Math.round(Number(sb));
     const b = Math.round(Number(bb));
+    const st = Math.round(Number(straddle)) || 0;
     if (!(s > 0 && b >= s)) throw new Error('Blinds must be positive and BB ≥ SB');
-    state.blinds = { sb: s, bb: b };
-    fx({ kind: 'scene', scene: { title: `Blinds ${s} / ${b}`, subtitle: 'New level', sound: 'ding', theme: 'purple', duration: 5, event: 'blinds' } });
-    return `blinds → ${s}/${b}`;
+    if (st && st < b) throw new Error('Straddle must be at least the big blind');
+    state.blinds = st ? { sb: s, bb: b, straddle: st } : { sb: s, bb: b };
+    const text = blindsText(state.blinds);
+    fx({ kind: 'scene', scene: { title: `Blinds ${text}`, subtitle: 'New level', sound: 'ding', theme: 'purple', duration: 5, event: 'blinds' } });
+    return `blinds → ${text}`;
   },
 
   resetNight() {
@@ -414,6 +418,11 @@ const actions = {
     return 'reset night';
   },
 };
+
+// "10 / 20" or, with a straddle, "10 / 20 / 40".
+function blindsText(b) {
+  return [b.sb, b.bb, b.straddle].filter(Boolean).join(' / ');
+}
 
 function cleanCustom({ title, subtitle, theme, sound }) {
   const t = String(title || '').trim().slice(0, 80);

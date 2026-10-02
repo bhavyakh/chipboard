@@ -103,6 +103,7 @@
   }
   .stat .v { font-size: 3.2vw; font-weight: 800; line-height: 1.05; }
   .stat .v.gold { color: var(--gold); font-size: 4.6vw; }
+  .stat .v.gold.three { font-size: 3.4vw; }
   .stat .sub { font-size: 1.15vw; color: var(--muted); margin-top: 0.4vh; }
   .awards { display: flex; flex-direction: column; gap: 2.6vh; margin-top: auto; }
   .award .who { font-size: 1.8vw; font-weight: 700; }
@@ -256,7 +257,7 @@
     if (lobby) {
       $('lobby-title').textContent = M.title;
       $('lobby-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-      $('lobby-terms').innerHTML = `Blinds <b>${S.blinds.sb} / ${S.blinds.bb}</b> · ${esc(terms)}`;
+      $('lobby-terms').innerHTML = `Blinds <b>${blindsText()}</b> · ${esc(terms)}`;
       $('here-label').textContent = S.players.length ? `At the table · ${S.players.length}` : 'Waiting for players…';
       $('here').innerHTML = S.players.map((p) => `<span>${esc(p.name)}</span>`).join('');
       $('lobby-url').textContent = url;
@@ -264,11 +265,16 @@
     }
 
     $('brand').textContent = M.title;
-    $('blinds').textContent = `${S.blinds.sb} / ${S.blinds.bb}`;
+    $('blinds').textContent = blindsText();
+    $('blinds').classList.toggle('three', Boolean(S.blinds.straddle));
     $('buyin-terms').textContent = terms;
 
     const n = S.players.length;
-    renderTiles();
+    try {
+      renderTiles();
+    } catch (err) {
+      console.error('tiles', err); // never let the strip take the sidebar down with it
+    }
     prevBuyins.clear();
     for (const p of S.players) prevBuyins.set(p.id, p.buyins);
 
@@ -333,6 +339,12 @@
       const sets = track.children;
       const dist = sets[1].offsetLeft - sets[0].offsetLeft;
       const duration = (dist / (window.innerWidth * SCROLL_SPEED)) * 1000;
+      // A window with no size yet (background tab, still opening) can't be measured —
+      // skip the scroll for now; the resize handler starts it once the window has a size.
+      if (!(duration > 0 && Number.isFinite(duration))) {
+        track.lastElementChild.remove();
+        return;
+      }
       marquee = track.animate(
         [{ transform: 'translateX(0)' }, { transform: `translateX(${-dist}px)` }],
         { duration, iterations: Infinity }
@@ -353,6 +365,10 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => { if (S && S.mode === 'table') renderTiles(); }, 200);
   });
+
+  function blindsText() {
+    return [S.blinds.sb, S.blinds.bb, S.blinds.straddle].filter(Boolean).join(' / ');
+  }
 
   function leader(score) {
     let best = null;

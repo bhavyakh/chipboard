@@ -198,11 +198,14 @@
 
     <h2>Blinds</h2>
     <div class="row">
-      <input id="sb" type="number" inputmode="numeric" min="1">
+      <input id="sb" type="number" inputmode="numeric" min="1" aria-label="Small blind" placeholder="SB">
       <span>/</span>
-      <input id="bb" type="number" inputmode="numeric" min="1">
-      <button class="chip-btn" id="set-blinds" style="flex:1; padding:12px">Update blinds</button>
+      <input id="bb" type="number" inputmode="numeric" min="1" aria-label="Big blind" placeholder="BB">
+      <span>/</span>
+      <input id="straddle" type="number" inputmode="numeric" min="0" aria-label="Straddle (optional)" placeholder="Str.">
     </div>
+    <p class="hint">Third box is the straddle — leave it empty for none.</p>
+    <button class="wide" id="set-blinds">Update blinds</button>
 
     <h2>Night</h2>
     <button class="wide danger" id="reset">Reset night (clears all players)</button>
@@ -272,7 +275,7 @@
   function render() {
     if (!S) return;
     $('title').textContent = M.title;
-    $('blinds-small').textContent = `${S.blinds.sb}/${S.blinds.bb}`;
+    $('blinds-small').textContent = [S.blinds.sb, S.blinds.bb, S.blinds.straddle].filter(Boolean).join('/');
     $('undo').disabled = !M.canUndo;
 
     const list = $('players');
@@ -319,9 +322,10 @@
     $('announcements').innerHTML = (M.announcements || []).map((a, i) => `<button data-i="${i}">${esc(a.label)}</button>`).join('');
 
     for (const b of $('mode').children) b.classList.toggle('on', b.dataset.mode === S.mode);
-    if (document.activeElement !== $('sb') && document.activeElement !== $('bb')) {
+    if (![$('sb'), $('bb'), $('straddle')].includes(document.activeElement)) {
       $('sb').value = S.blinds.sb;
       $('bb').value = S.blinds.bb;
+      $('straddle').value = S.blinds.straddle || '';
     }
     $('logout').classList.toggle('hidden', !M.loginEnabled);
     $('urls').textContent = M.controlUrls.length
@@ -475,7 +479,7 @@
     if (b) act('clock', { seconds: Number(b.dataset.s) });
   });
   $('set-blinds').addEventListener('click', async () => {
-    const r = await act('setBlinds', { sb: $('sb').value, bb: $('bb').value });
+    const r = await act('setBlinds', { sb: $('sb').value, bb: $('bb').value, straddle: $('straddle').value });
     if (r && r.ok) { document.activeElement.blur(); toast('Blinds updated'); }
   });
   $('logout').addEventListener('click', async () => {
