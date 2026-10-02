@@ -24,8 +24,8 @@ System Settings → Network → Firewall). Keep the lid open; `caffeinate -d` in
 
 | Tab | What it does |
 |---|---|
-| **Players** | Add a player (starts with 1 buy-in and gets a welcome screen). `+`/`−` buy-ins. Each rebuy flashes on the monitor. All-in / Ship it / Bad beat / Clock (30 s shot clock) / Hello. `⋯` renames, or type `DELETE` to remove. |
-| **Sounds** | Soundboard plus announcements (bomb pot, straddle, last orbit, break). |
+| **Players** | Add a player (starts with 1 buy-in and gets a welcome screen). `+`/`−` buy-ins. Each rebuy flashes on the monitor. All-in / Fold / Scoop / Bad beat / Clock (30 s shot clock) / Hello. `⋯` renames, or type `DELETE` to remove. |
+| **Fun** | Custom message (big text, optional second line, colour, sound; the last 8 are kept as one-tap chips), soundboard, and announcements (bomb pot, straddle, last orbit, break). |
 | **Screen** | Switch the monitor between the welcome screen and the buy-in board. Shot clock without a name. Change blinds. Reset the night. |
 
 **↶ Undo** (top right) reverses the last change, as many times back as you need. **✕** (bottom right) clears whatever is on the monitor.
@@ -39,7 +39,7 @@ Edit while the server runs; the screens update within a second.
 
 - `buyIn`, `chipsPerBuyIn`, `blinds`: the game. Currently ₹1,000 = 2,000 chips at 20/50.
 - `pin`: set e.g. `"4321"` and the remote asks for it once.
-- `scenes`: what the monitor shows for each event (`welcome`, `rebuy`, `allin`, `shipit`, `badbeat`).
+- `scenes`: what the monitor shows for each event (`welcome`, `rebuy`, `allin`, `fold`, `shipit`, `badbeat`).
 - `playerScenes`: overrides for specific people, matched by name (case doesn't matter). This is where Ginna lives:
 
 ```json
@@ -58,11 +58,11 @@ Edit while the server runs; the screens update within a second.
 ```
 
   Give an event a list of scenes instead of one and a random one plays each time.
-- `playerActions`: the buttons under each player. Add `{ "event": "cooler", "label": "Cooler" }` and
+- `playerActions`: the buttons under each player; `award` is the footer title for whoever has the most. Add `{ "event": "cooler", "label": "Cooler", "award": "Most coolers" }` and
   a matching `scenes.cooler` to create a new event.
 - `announcements`, `soundboard`: the buttons on the Sounds tab.
 
-**Scene fields:** `title`, `subtitle`, `image` (gif/png/jpg/mp4/webm in `media/`), `sound`, `theme`
+**Scene fields:** `kicker` (small line above the title), `title`, `subtitle`, `image` (gif/png/jpg/mp4/webm in `media/`), `sound`, `theme`
 (`red`, `gold`, `green`, `blue`, `purple`, `black`), `duration` in seconds, `confetti: true`.
 Text can use `{name}`, `{buyins}`, `{total}`, `{chips}`, `{count}` (times this event has happened to them
 tonight), `{allins}`, `{sb}`, `{bb}`.

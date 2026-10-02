@@ -8,9 +8,10 @@
   "welcomeOnJoin": true,
 
   "playerActions": [
-    { "event": "allin", "label": "All-in" },
-    { "event": "shipit", "label": "Ship it" },
-    { "event": "badbeat", "label": "Bad beat" }
+    { "event": "allin", "label": "All-in", "award": "Most all-ins" },
+    { "event": "fold", "label": "Fold", "award": "Nit of the night" },
+    { "event": "shipit", "label": "Scoop", "award": "Most scoops" },
+    { "event": "badbeat", "label": "Bad beat", "award": "Most bad beats" }
   ],
 
   "scenes": {
@@ -35,9 +36,18 @@
       "theme": "red",
       "duration": 7
     },
+    "fold": {
+      "kicker": "{name} folds",
+      "title": "kya hua, moot diya?",
+      "subtitle": "",
+      "sound": "sadtrombone",
+      "theme": "black",
+      "duration": 5
+    },
     "shipit": {
-      "title": "SHIP IT",
-      "subtitle": "{name} scoops the pot",
+      "kicker": "{name}",
+      "title": "bhai ka scoop hai.",
+      "subtitle": "aaa yeeee",
       "sound": "chaching",
       "theme": "gold",
       "confetti": true,
@@ -74,7 +84,7 @@
 
   "soundboard": [
     { "label": "Airhorn", "sound": "airhorn" },
-    { "label": "Ship it", "sound": "chaching" },
+    { "label": "Cha-ching", "sound": "chaching" },
     { "label": "Sad trombone", "sound": "sadtrombone" },
     { "label": "Drumroll", "sound": "drumroll" },
     { "label": "Applause", "sound": "applause" },

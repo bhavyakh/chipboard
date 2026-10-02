@@ -123,6 +123,9 @@
   #scene.leaving { animation: sceneout 0.35s ease both; }
   @keyframes scenein { from { opacity: 0; transform: scale(1.15); } to { opacity: 1; transform: scale(1); } }
   @keyframes sceneout { to { opacity: 0; transform: scale(0.96); } }
+  #scene .kicker { font-size: 2.6vw; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75; }
+  #scene .title.long { font-size: 6.5vw; }
+  #scene .title.longer { font-size: 4.8vw; }
   #scene .title { font-size: 9vw; font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: none; }
   #scene .subtitle { font-size: 3.2vw; opacity: 0.85; }
   #scene .media img, #scene .media video { max-height: 48vh; max-width: 80vw; border-radius: 1.2vw; }
@@ -189,6 +192,7 @@
 
 <div id="scene" class="hidden">
   <div class="media" id="scene-media"></div>
+  <div class="kicker" id="scene-kicker"></div>
   <div class="title" id="scene-title"></div>
   <div class="subtitle" id="scene-subtitle"></div>
   <div class="bar" id="scene-bar"></div>
@@ -322,7 +326,7 @@
     if (atm) out.push(`<span>ATM of the night: <b>${esc(atm.p.name)}</b> (${atm.v})</span>`);
     for (const a of M.playerActions || []) {
       const l = leader((p) => (p.counts && p.counts[a.event]) || 0);
-      if (l) out.push(`<span>Most ${esc(a.label.toLowerCase())}: <b>${esc(l.p.name)}</b> (${l.v})</span>`);
+      if (l) out.push(`<span>${esc(a.award || 'Most ' + a.label.toLowerCase())}: <b>${esc(l.p.name)}</b> (${l.v})</span>`);
     }
     return out.slice(0, 3);
   }
@@ -356,8 +360,13 @@
     const el = $('scene');
     el.className = `theme-${sc.theme || 'black'}`;
     $('scene-media').innerHTML = mediaHtml(sc.image || sc.video);
-    $('scene-title').textContent = sc.title || '';
+    const title = sc.title || '';
+    $('scene-kicker').textContent = sc.kicker || '';
+    $('scene-kicker').classList.toggle('hidden', !sc.kicker);
+    $('scene-title').textContent = title;
+    $('scene-title').className = 'title' + (title.length > 40 ? ' longer' : title.length > 18 ? ' long' : '');
     $('scene-subtitle').textContent = sc.subtitle || '';
+    $('scene-subtitle').classList.toggle('hidden', !sc.subtitle);
     void el.offsetWidth;
     el.classList.add('show');
     if (sc.sound) Sounds.play(sc.sound);

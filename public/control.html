@@ -68,8 +68,8 @@
   .stepper .n { min-width: 34px; text-align: center; font-size: 22px; font-weight: 800; }
   .more { width: 36px; height: 44px; border-radius: 10px; background: transparent; color: var(--muted); font-size: 20px; }
   #players { display: grid; gap: 10px; }
-  .acts { display: flex; gap: 5px; }
-  .acts button { flex: 1 1 auto; padding: 9px 6px; border-radius: 10px; background: var(--panel-2); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .acts { display: flex; flex-wrap: wrap; gap: 5px; }
+  .acts button { flex: 1 1 auto; padding: 9px 5px; border-radius: 10px; background: var(--panel-2); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .acts button.allin { background: rgba(229, 72, 77, 0.22); color: #ffb3b5; }
 
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -83,6 +83,17 @@
   .row input { width: 80px; padding: 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); text-align: center; }
   .wide { width: 100%; padding: 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-weight: 600; }
   .danger { color: #ffb3b5; }
+  .msg { display: grid; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .msg input, .msg select {
+    width: 100%; padding: 12px 14px; border-radius: 12px; font-size: 16px;
+    background: var(--bg); border: 1px solid var(--line); color: var(--ink);
+  }
+  .swatches { display: flex; gap: 8px; }
+  .swatches button { flex: 1; height: 36px; border-radius: 10px; border: 2px solid transparent; }
+  .swatches button.on { border-color: var(--ink); }
+  .send { padding: 14px; border-radius: 12px; background: var(--gold); color: #1a1206; font-weight: 800; }
+  .recent { display: flex; flex-wrap: wrap; gap: 6px; }
+  .recent button { padding: 8px 12px; border-radius: 99px; background: var(--panel-2); font-size: 14px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hint { color: var(--muted); font-size: 13px; line-height: 1.5; }
   .empty { text-align: center; padding: 28px 12px; color: var(--muted); }
 
@@ -124,6 +135,22 @@
 
   <!-- SOUNDS -->
   <section class="tab" id="tab-sounds">
+    <h2>Custom message</h2>
+    <form class="msg" id="msg-form" autocomplete="off">
+      <input id="msg-title" placeholder="Big text on the monitor" maxlength="80" enterkeyhint="send">
+      <input id="msg-sub" placeholder="Smaller line underneath (optional)" maxlength="120" enterkeyhint="send">
+      <div class="swatches" id="msg-theme">
+        <button type="button" data-theme="black" style="background:#2a2a2a" class="on" aria-label="Black"></button>
+        <button type="button" data-theme="red" style="background:#b3171b" aria-label="Red"></button>
+        <button type="button" data-theme="gold" style="background:#b8860b" aria-label="Gold"></button>
+        <button type="button" data-theme="green" style="background:#188a4f" aria-label="Green"></button>
+        <button type="button" data-theme="blue" style="background:#1f4f9e" aria-label="Blue"></button>
+        <button type="button" data-theme="purple" style="background:#6b2fb3" aria-label="Purple"></button>
+      </div>
+      <select id="msg-sound"></select>
+      <button class="send" type="submit">Show on monitor</button>
+      <div class="recent" id="msg-recent"></div>
+    </form>
     <h2>Soundboard</h2>
     <div class="grid" id="soundboard"></div>
     <h2>Announcements</h2>
@@ -161,7 +188,7 @@
 
 <nav>
   <button class="on" data-tab="players">Players</button>
-  <button data-tab="sounds">Sounds</button>
+  <button data-tab="sounds">Fun</button>
   <button data-tab="screen">Screen</button>
   <button class="clear" id="clear" title="Clear the monitor">✕</button>
 </nav>
@@ -241,6 +268,11 @@
         </div>`).join('');
     }
 
+    const sel = $('msg-sound');
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">No sound</option>' + (M.soundboard || []).map((s) => `<option value="${esc(s.sound)}">${esc(s.label)}</option>`).join('');
+    if (keep) sel.value = keep;
+    renderRecent();
     $('soundboard').innerHTML = (M.soundboard || []).map((s, i) => `<button data-i="${i}">${esc(s.label)}</button>`).join('');
     $('announcements').innerHTML = (M.announcements || []).map((a, i) => `<button data-i="${i}">${esc(a.label)}</button>`).join('');
 
@@ -281,6 +313,37 @@
         if (name.trim() && name.trim() !== p.name) return act('renamePlayer', { id, name });
       }
     }
+  });
+
+  // ---------- custom message ----------
+  let msgTheme = 'black';
+  function getRecent() { try { return JSON.parse(localStorage.getItem('pn-recent') || '[]'); } catch { return []; } }
+  function saveRecent(list) { try { localStorage.setItem('pn-recent', JSON.stringify(list.slice(0, 8))); } catch {} }
+  function renderRecent() {
+    $('msg-recent').innerHTML = getRecent().map((m, i) => `<button type="button" data-i="${i}">${esc(m.title)}</button>`).join('');
+  }
+  $('msg-theme').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    msgTheme = b.dataset.theme;
+    for (const x of $('msg-theme').children) x.classList.toggle('on', x === b);
+  });
+  $('msg-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const m = { title: $('msg-title').value.trim(), subtitle: $('msg-sub').value.trim(), theme: msgTheme, sound: $('msg-sound').value };
+    if (!m.title) return toast('Type a message first');
+    const r = await act('custom', m);
+    if (r && r.ok) {
+      saveRecent([m, ...getRecent().filter((x) => x.title !== m.title || x.subtitle !== m.subtitle)]);
+      renderRecent();
+      $('msg-title').value = '';
+      $('msg-sub').value = '';
+      document.activeElement.blur();
+    }
+  });
+  $('msg-recent').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) act('custom', getRecent()[Number(b.dataset.i)]);
   });
 
   $('undo').addEventListener('click', async () => {

@@ -238,6 +238,23 @@ const actions = {
     fx({ kind: 'scene', scene: { ...scene, event: 'announcement' } });
   },
 
+  custom({ title, subtitle, theme, sound }) {
+    const t = String(title || '').trim().slice(0, 80);
+    if (!t) throw new Error('Type a message first');
+    const themes = ['red', 'gold', 'green', 'blue', 'purple', 'black'];
+    fx({
+      kind: 'scene',
+      scene: {
+        title: t,
+        subtitle: String(subtitle || '').trim().slice(0, 120),
+        theme: themes.includes(theme) ? theme : 'black',
+        sound: sound ? String(sound) : '',
+        duration: 7,
+        event: 'custom',
+      },
+    });
+  },
+
   sound({ sound }) {
     fx({ kind: 'sound', sound: String(sound) });
   },
