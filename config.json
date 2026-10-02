@@ -52,6 +52,14 @@
       "confetti": true,
       "duration": 5
     },
+    "cashout": {
+      "kicker": "{name}",
+      "title": "cashed out",
+      "subtitle": "{cashChips} chips · {net}",
+      "sound": "chaching",
+      "theme": "green",
+      "duration": 6
+    },
     "cement": {
       "kicker": "{name}",
       "title": "cemented.",

@@ -29,7 +29,7 @@ System Settings → Network → Firewall). Keep the lid open; `caffeinate -d` in
 
 | Tab | What it does |
 |---|---|
-| **Players** | Add a player (starts with 1 buy-in and gets a welcome screen). `+`/`−` buy-ins. Each rebuy flashes on the monitor. All-in / Fold / Scoop / Bad beat / Clock (30 s shot clock) / Cement (tap again to un-cement). `⋯` opens: welcome screen, rename, remove. |
+| **Players** | Add a player (starts with 1 buy-in and gets a welcome screen). `+`/`−` buy-ins. Each rebuy flashes on the monitor. All-in / Fold / Scoop / Bad beat / Clock (30 s shot clock) / Cement (tap again to un-cement). `⋯` opens: **cash out** (type their final chips; shows the ₹ value and +/− against what they bought in), welcome screen, rename, remove. A cashed-out player moves to the end of the board with their final chips and result, and the sidebar shows chips still in play. `⋯` → *Back in the game* reverses it. |
 | **Custom** | Type a message (big text, optional second line, colour, sound) and **Show now**, or **Save as button** to keep it under *My buttons* for every game. *My sounds*: **＋ Add sound** uploads an audio file from your phone; tap it to play on the laptop's speakers. **Edit** deletes buttons or sounds. Built-in sounds and announcements are below. |
 | **Screen** | Switch the monitor between the welcome screen and the buy-in board. Shot clock without a name. Change blinds. Reset the night. |
 

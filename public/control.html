@@ -107,6 +107,13 @@
   #sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.6); display: flex; align-items: flex-end; }
   #sheet .panel { width: 100%; background: var(--panel); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 8px; }
   #sheet .sheet-title { font-weight: 800; font-size: 18px; padding: 4px 4px 8px; }
+  #sheet .sheet-sub { color: var(--muted); font-size: 14px; padding: 0 4px 6px; margin-top: -6px; }
+  #sheet input { width: 100%; padding: 16px; border-radius: 12px; font: inherit; font-size: 24px; font-weight: 800; text-align: center; background: var(--bg); border: 1px solid var(--line); color: var(--ink); }
+  #sheet .preview { text-align: center; font-size: 15px; color: var(--muted); min-height: 20px; }
+  #sheet .primary { background: var(--gold); color: #1a1206; text-align: center; }
+  .pos { color: #3ad07a; } .neg { color: #ff8a8d; }
+  .player.out { opacity: 0.75; border-style: dashed; }
+  .tag.out { background: #3ad07a; color: #04170c; }
   #sheet button { padding: 15px; border-radius: 12px; background: var(--panel-2); font-weight: 700; text-align: left; }
   .hint { color: var(--muted); font-size: 13px; line-height: 1.5; }
   .empty { text-align: center; padding: 28px 12px; color: var(--muted); }
@@ -226,10 +233,21 @@
 <div id="sheet" class="hidden">
   <div class="panel">
     <div class="sheet-title" id="sheet-title"></div>
-    <button data-s="welcome">Show welcome screen</button>
+    <div class="sheet-sub" id="sheet-sub"></div>
+    <div id="sheet-menu" style="display:grid; gap:8px">
+    <button data-s="cashout" id="sheet-cashout">Cash out — enter final chips</button>
+    <button data-s="backin" id="sheet-backin">Back in the game</button>
+    <button data-s="welcome" id="sheet-welcome">Show welcome screen</button>
     <button data-s="rename">Rename</button>
     <button data-s="remove" class="danger">Remove from table</button>
     <button data-s="cancel">Cancel</button>
+    </div>
+    <form id="cash-form" class="hidden" style="display:grid; gap:8px" autocomplete="off">
+      <input id="cash-chips" type="number" inputmode="numeric" min="0" step="1" placeholder="Final chips" aria-label="Final chip count">
+      <div class="preview" id="cash-preview"></div>
+      <button type="submit" class="primary">Save cash-out</button>
+      <button type="button" data-s="cancel">Cancel</button>
+    </form>
   </div>
 </div>
 
@@ -282,7 +300,13 @@
     if (!S.players.length) {
       list.innerHTML = '<div class="empty">No one at the table yet.<br>Add players above — each starts with one buy-in.</div>';
     } else {
-      list.innerHTML = S.players.map((p) => `
+      list.innerHTML = S.players.map((p) => p.cashOut ? `
+        <div class="player out" data-id="${p.id}">
+          <div class="prow">
+            <div class="pname">${esc(p.name)}<span class="tag out">CASHED OUT</span><small>${p.buyins} buy-in${p.buyins === 1 ? '' : 's'} · ${fmt(p.cashOut.chips)} chips · ${netHtml(p, p.cashOut.chips)}</small></div>
+            <button class="more" data-act="more" aria-label="More options">⋯</button>
+          </div>
+        </div>` : `
         <div class="player" data-id="${p.id}">
           <div class="prow">
             <div class="pname">${esc(p.name)}${p.cemented ? '<span class="tag">🧱 CEMENT</span>' : ''}<small>${M.currency}${fmt(p.buyins * M.buyIn)} · ${fmt(p.buyins * M.chipsPerBuyIn)} chips</small></div>
@@ -359,17 +383,66 @@
 
   // ---------- player options sheet ----------
   let sheetPlayer = null;
+
+  // Final chips → result against what they bought in, e.g. "+₹700".
+  function netHtml(p, chips) {
+    const net = Math.round((chips * M.buyIn) / M.chipsPerBuyIn) - p.buyins * M.buyIn;
+    const txt = net > 0 ? `+${M.currency}${fmt(net)}` : net < 0 ? `−${M.currency}${fmt(-net)}` : `${M.currency}0`;
+    return `<span class="${net > 0 ? 'pos' : net < 0 ? 'neg' : ''}">${txt}</span>`;
+  }
+
   function openSheet(p) {
     sheetPlayer = p;
     $('sheet-title').textContent = p.name;
+    $('sheet-sub').textContent = `In for ${M.currency}${fmt(p.buyins * M.buyIn)} · ${fmt(p.buyins * M.chipsPerBuyIn)} chips`;
+    $('sheet-cashout').textContent = p.cashOut ? `Change final chips (${fmt(p.cashOut.chips)})` : 'Cash out — enter final chips';
+    $('sheet-backin').classList.toggle('hidden', !p.cashOut);
+    $('sheet-welcome').classList.toggle('hidden', Boolean(p.cashOut));
+    $('sheet-menu').classList.remove('hidden');
+    $('cash-form').classList.add('hidden');
     $('sheet').classList.remove('hidden');
   }
+  function closeSheet() {
+    $('sheet').classList.add('hidden');
+    $('cash-chips').blur();
+  }
+
+  function updateCashPreview() {
+    const p = sheetPlayer;
+    const v = $('cash-chips').value;
+    if (!p || v === '') return ($('cash-preview').innerHTML = '');
+    const value = Math.round((Number(v) * M.buyIn) / M.chipsPerBuyIn);
+    $('cash-preview').innerHTML = `= ${M.currency}${fmt(value)} · ${netHtml(p, Number(v))}`;
+  }
+  $('cash-chips').addEventListener('input', updateCashPreview);
+  $('cash-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const p = sheetPlayer;
+    const chips = $('cash-chips').value.trim();
+    if (chips === '') return toast('Enter the final chip count');
+    const r = await act('cashOut', { id: p.id, chips: Number(chips) });
+    if (r && r.ok) {
+      closeSheet();
+      toast(`${p.name} cashed out`);
+    }
+  });
+
   $('sheet').addEventListener('click', async (e) => {
     const b = e.target.closest('button');
+    if (b && b.type === 'submit') return;
     if (!b && e.target !== $('sheet')) return;
-    $('sheet').classList.add('hidden');
     const p = sheetPlayer;
+    if (b && b.dataset.s === 'cashout') {
+      $('sheet-menu').classList.add('hidden');
+      $('cash-form').classList.remove('hidden');
+      $('cash-chips').value = p.cashOut ? p.cashOut.chips : '';
+      updateCashPreview();
+      $('cash-chips').focus();
+      return;
+    }
+    closeSheet();
     if (!b || !p) return;
+    if (b.dataset.s === 'backin') act('undoCashOut', { id: p.id });
     if (b.dataset.s === 'welcome') act('welcome', { id: p.id });
     if (b.dataset.s === 'rename') {
       const name = prompt(`Rename ${p.name}`, p.name);

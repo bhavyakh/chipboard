@@ -77,7 +77,18 @@
     border: 2px solid #8b877e;
   }
   .tile.cement .name, .tile.cement .n { color: #d9d4c9; }
-  .tile.cement::after {
+  .tile.out { opacity: 0.62; border-style: dashed; }
+  .tile.out .n { color: var(--muted); }
+  .tile.out .amt { grid-column: 1 / 3; color: var(--ink); font-size: min(7cqw, 14cqh); white-space: nowrap; }
+  .tile.out .mid { grid-area: 1 / 2 / 2 / 3; }
+  .tile.out .n { font-size: min(26cqw, 50cqh); }
+  .net.pos { color: #3ad07a; }
+  .net.neg { color: var(--hot-3); }
+  .tile.out::after {
+    content: "CASHED OUT" !important;
+    background: #3ad07a !important; color: #04170c !important;
+  }
+  .tile.cement::after, .tile.out::after {
     content: "🧱 CEMENTED";
     position: absolute; top: 0; right: 1.2vw; transform: translateY(-50%);
     font-size: 0.85vw; font-weight: 800; letter-spacing: 0.14em;
@@ -104,7 +115,8 @@
   .stat .v { font-size: 3.2vw; font-weight: 800; line-height: 1.05; }
   .stat .v.gold { color: var(--gold); font-size: 4.6vw; }
   .stat .v.gold.three { font-size: 3.4vw; }
-  .stat .sub { font-size: 1.15vw; color: var(--muted); margin-top: 0.4vh; }
+  .stat .sub { font-size: 1.15vw; color: var(--muted); margin-top: 0.4vh; line-height: 1.5; }
+  .stat .sub b { color: var(--ink); }
   .awards { display: flex; flex-direction: column; gap: 2.6vh; margin-top: auto; }
   .award .who { font-size: 1.8vw; font-weight: 700; }
   .award .who span { color: var(--gold); margin-left: 0.5vw; }
@@ -280,7 +292,13 @@
 
     const totalBuy = S.players.reduce((a, p) => a + p.buyins, 0);
     $('total-money').textContent = `${M.currency}${fmt(totalBuy * M.buyIn)}`;
-    $('total-sub').textContent = `${totalBuy} buy-in${totalBuy === 1 ? '' : 's'} · ${n} player${n === 1 ? '' : 's'}`;
+    const out = S.players.filter((p) => p.cashOut);
+    let sub = `${totalBuy} buy-in${totalBuy === 1 ? '' : 's'} · ${n} player${n === 1 ? '' : 's'}`;
+    if (out.length) {
+      const cashedChips = out.reduce((a, p) => a + p.cashOut.chips, 0);
+      sub += ` · ${out.length} cashed out<br>Chips still in play <b>${fmt(totalBuy * M.chipsPerBuyIn - cashedChips)}</b>`;
+    }
+    $('total-sub').innerHTML = sub;
     $('awards').innerHTML = awards().join('');
     tickClock();
   }
@@ -296,12 +314,22 @@
       isTop ? 'top' : '',
       p.buyins === 0 ? 'zero' : '',
       p.cemented ? 'cement' : '',
+      p.cashOut ? 'out' : '',
     ].join(' ');
     return `<div class="tile ${cls}" data-id="${p.id}">
       <div class="name">${esc(p.name)}</div>
       <div class="mid"><div class="n">${p.buyins}</div><div class="unit">${p.buyins === 1 ? 'buy-in' : 'buy-ins'}</div></div>
-      <div class="amt">${M.currency}${fmt(p.buyins * M.buyIn)}</div>
+      <div class="amt">${p.cashOut ? cashLine(p) : M.currency + fmt(p.buyins * M.buyIn)}</div>
     </div>`;
+  }
+
+  function netOf(p) {
+    return Math.round((p.cashOut.chips * M.buyIn) / M.chipsPerBuyIn) - p.buyins * M.buyIn;
+  }
+  function cashLine(p) {
+    const net = netOf(p);
+    const txt = net > 0 ? `+${M.currency}${fmt(net)}` : net < 0 ? `−${M.currency}${fmt(-net)}` : `${M.currency}0`;
+    return `${fmt(p.cashOut.chips)} chips · <span class="net ${net > 0 ? 'pos' : net < 0 ? 'neg' : ''}">${txt}</span>`;
   }
 
   function renderTiles() {
@@ -323,7 +351,8 @@
       return;
     }
 
-    const sorted = [...S.players].sort((a, b) => b.buyins - a.buyins || a.id - b.id);
+    // Still playing first (most buy-ins leading), cashed-out players at the end.
+    const sorted = [...S.players].sort((a, b) => !!a.cashOut - !!b.cashOut || b.buyins - a.buyins || a.id - b.id);
     const maxBuy = sorted[0].buyins;
     const topIsUnique = maxBuy >= 2 && sorted.filter((p) => p.buyins === maxBuy).length === 1;
     const html = sorted.map((p, i) => tileHtml(p, i === 0 && topIsUnique)).join('');

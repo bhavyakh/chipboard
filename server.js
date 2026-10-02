@@ -255,6 +255,7 @@ function resolveScene(event, player, extra = {}) {
       total: fmt(player.buyins * buyIn),
       chips: fmt(player.buyins * chips),
       allins: (player.counts && player.counts.allin) || 0,
+      ...cashVars(player, buyIn, chips),
       count: (player.counts && player.counts[event]) || 0,
     }),
     ...extra,
@@ -263,6 +264,19 @@ function resolveScene(event, player, extra = {}) {
   for (const [k, v] of Object.entries(scene)) out[k] = fill(v, vars);
   out.event = event;
   return out;
+}
+
+// Final chips → rupee value and result against what they bought in.
+function cashVars(player, buyIn, chipsPerBuyIn) {
+  if (!player.cashOut) return {};
+  const value = Math.round((player.cashOut.chips * buyIn) / chipsPerBuyIn);
+  const net = value - player.buyins * buyIn;
+  const cur = config.currency || '₹';
+  return {
+    cashChips: fmt(player.cashOut.chips),
+    cashValue: fmt(value),
+    net: net > 0 ? `+${cur}${fmt(net)}` : net < 0 ? `−${cur}${fmt(-net)}` : `${cur}0`,
+  };
 }
 
 function showScene(event, player) {
@@ -313,6 +327,7 @@ const actions = {
 
   buyin({ id, delta }) {
     const p = findPlayer(id);
+    if (p.cashOut) throw new Error(`${p.name} has cashed out — tap ⋯ → Back in game first`);
     const d = Number(delta) >= 0 ? 1 : -1;
     const next = Math.max(0, p.buyins + d);
     if (next === p.buyins) return;
@@ -370,6 +385,23 @@ const actions = {
     if (!AUDIO_EXT.includes(path.extname(f).toLowerCase()) || !fs.existsSync(full)) throw new Error('Sound not found');
     fs.unlinkSync(full);
     broadcastState();
+  },
+
+  cashOut({ id, chips }) {
+    const p = findPlayer(id);
+    const c = Math.round(Number(chips));
+    if (chips === '' || chips == null || !Number.isFinite(c) || c < 0) throw new Error('Enter the final chip count');
+    const changing = Boolean(p.cashOut);
+    p.cashOut = { chips: c, at: (p.cashOut && p.cashOut.at) || Date.now() };
+    if (!changing) showScene('cashout', p);
+    return `${changing ? 'change cash-out for' : 'cash out'} ${p.name} (${c} chips)`;
+  },
+
+  undoCashOut({ id }) {
+    const p = findPlayer(id);
+    if (!p.cashOut) return;
+    delete p.cashOut;
+    return `${p.name} back in the game`;
   },
 
   toggleCement({ id }) {
