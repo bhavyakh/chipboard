@@ -47,19 +47,19 @@
             mask-image: linear-gradient(90deg, transparent 0, #000 2.5vw, #000 calc(100% - 2.5vw), transparent 100%);
   }
   #board.static { justify-content: center; }
-  #track { display: flex; gap: 1.6vw; padding: 0 2.5vw; width: max-content; will-change: transform; }
+  #track { display: flex; gap: 1.4vw; padding: 0 2.5vw; width: max-content; will-change: transform; }
+  .set { display: grid; grid-template-rows: repeat(var(--tile-rows, 2), 26vh); grid-auto-flow: column; grid-auto-columns: 22vw; gap: 2.4vh 1.4vw; }
   .tile {
     container-type: size;
-    flex: none; width: 19vw; height: 72vh;
-    background: var(--card); border: 1px solid var(--card-line); border-radius: 1.4vw;
-    padding: 3.5vh 1.6vw;
-    display: flex; flex-direction: column; justify-content: space-between;
+    background: var(--card); border: 1px solid var(--card-line); border-radius: 1.2vw;
+    padding: 2.6vh 1.5vw;
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: 1fr auto; column-gap: 1vw;
   }
-  .tile .name { font-size: 13cqw; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tile .mid { text-align: center; }
-  .tile .n { font-size: 60cqw; font-weight: 900; line-height: 0.9; }
-  .tile .unit { font-size: 6cqw; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-top: 1.5cqh; }
-  .tile .amt { font-size: 10cqw; font-weight: 700; color: var(--muted); }
+  .tile .name { grid-area: 1 / 1; font-size: min(11cqw, 22cqh); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .amt { grid-area: 2 / 1; font-size: min(8cqw, 15cqh); font-weight: 700; color: var(--muted); }
+  .tile .mid { grid-area: 1 / 2 / 3 / 3; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .tile .n { font-size: min(34cqw, 72cqh); font-weight: 900; line-height: 0.85; }
+  .tile .unit { font-size: min(4.5cqw, 9cqh); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-top: 3cqh; }
   .tile.heat-2 .n { color: var(--hot-2); }
   .tile.heat-3 .n { color: var(--hot-3); }
   .tile.top { border-color: rgba(232, 194, 106, 0.6); }
@@ -262,6 +262,7 @@
 
   // ---------- tiles + auto-scroll ----------
   const SCROLL_SPEED = 0.035; // share of the screen width travelled per second
+  const TILE_ROWS = 2;        // rows of tiles in the strip
   let marquee = null;
 
   function tileHtml(p, isTop) {
@@ -301,15 +302,16 @@
     const topIsUnique = maxBuy >= 2 && sorted.filter((p) => p.buyins === maxBuy).length === 1;
     const html = sorted.map((p, i) => tileHtml(p, i === 0 && topIsUnique)).join('');
 
-    track.innerHTML = html;
+    board.style.setProperty('--tile-rows', Math.min(TILE_ROWS, sorted.length));
+    track.innerHTML = `<div class="set">${html}</div>`;
     const fits = track.scrollWidth <= board.clientWidth;
     board.classList.toggle('static', fits);
 
     if (!fits) {
       // Two copies side by side; slide left by exactly one copy, then loop — seamless.
-      track.innerHTML = html + html.replace(/class="tile /g, 'aria-hidden="true" class="tile ');
-      const tiles = track.children;
-      const dist = tiles[sorted.length].offsetLeft - tiles[0].offsetLeft;
+      track.innerHTML += `<div class="set" aria-hidden="true">${html}</div>`;
+      const sets = track.children;
+      const dist = sets[1].offsetLeft - sets[0].offsetLeft;
       const duration = (dist / (window.innerWidth * SCROLL_SPEED)) * 1000;
       marquee = track.animate(
         [{ transform: 'translateX(0)' }, { transform: `translateX(${-dist}px)` }],
