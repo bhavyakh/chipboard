@@ -235,12 +235,12 @@
     <div class="sheet-title" id="sheet-title"></div>
     <div class="sheet-sub" id="sheet-sub"></div>
     <div id="sheet-menu" style="display:grid; gap:8px">
-    <button data-s="cashout" id="sheet-cashout">Cash out — enter final chips</button>
-    <button data-s="backin" id="sheet-backin">Back in the game</button>
-    <button data-s="welcome" id="sheet-welcome">Show welcome screen</button>
-    <button data-s="rename">Rename</button>
-    <button data-s="remove" class="danger">Remove from table</button>
-    <button data-s="cancel">Cancel</button>
+    <button type="button" data-s="cashout" id="sheet-cashout">Cash out — enter final chips</button>
+    <button type="button" data-s="backin" id="sheet-backin">Back in the game</button>
+    <button type="button" data-s="welcome" id="sheet-welcome">Show welcome screen</button>
+    <button type="button" data-s="rename">Rename</button>
+    <button type="button" data-s="remove" class="danger">Remove from table</button>
+    <button type="button" data-s="cancel">Cancel</button>
     </div>
     <form id="cash-form" class="hidden" style="display:grid; gap:8px" autocomplete="off">
       <input id="cash-chips" type="number" inputmode="numeric" min="0" step="1" placeholder="Final chips" aria-label="Final chip count">
@@ -429,7 +429,7 @@
 
   $('sheet').addEventListener('click', async (e) => {
     const b = e.target.closest('button');
-    if (b && b.type === 'submit') return;
+    if (b && b.type === 'submit' && b.form) return; // the chip form's Save is handled by its submit listener
     if (!b && e.target !== $('sheet')) return;
     const p = sheetPlayer;
     if (b && b.dataset.s === 'cashout') {
