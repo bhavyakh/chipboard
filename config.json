@@ -53,6 +53,14 @@
       "confetti": true,
       "duration": 5
     },
+    "cement": {
+      "kicker": "{name}",
+      "title": "cemented.",
+      "subtitle": "ab yeh nahi hilega",
+      "sound": "rimshot",
+      "theme": "black",
+      "duration": 5
+    },
     "badbeat": {
       "kicker": "{name}",
       "title": "bhai, bura laga.",

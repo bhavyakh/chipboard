@@ -14,9 +14,14 @@ const PORT = Number(process.env.PORT) || 4242;
 const CONFIG_PATH = path.join(ROOT, 'config.json');
 const DATA_DIR = path.join(ROOT, 'data');
 const STATE_PATH = path.join(DATA_DIR, 'state.json');
+const LIBRARY_PATH = path.join(DATA_DIR, 'library.json');
+const SOUNDS_DIR = path.join(ROOT, 'media', 'sounds');
+const AUDIO_EXT = ['.mp3', '.m4a', '.wav', '.ogg', '.aac'];
+const MAX_UPLOAD = 15 * 1024 * 1024;
 const UNDO_LIMIT = 200;
 
 const MIME = {
+  '.aac': 'audio/aac',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -82,6 +87,35 @@ function saveNow() {
   fs.renameSync(tmp, STATE_PATH);
 }
 
+// Saved custom buttons live outside the night's state, so "Reset night" keeps them.
+function loadLibrary() {
+  try {
+    return { buttons: [], ...JSON.parse(fs.readFileSync(LIBRARY_PATH, 'utf8')) };
+  } catch {
+    return { buttons: [] };
+  }
+}
+let library = loadLibrary();
+function saveLibrary() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(LIBRARY_PATH, JSON.stringify(library, null, 2));
+}
+
+function customSounds() {
+  try {
+    return fs
+      .readdirSync(SOUNDS_DIR)
+      .filter((f) => AUDIO_EXT.includes(path.extname(f).toLowerCase()))
+      .sort((a, b) => a.localeCompare(b))
+      .map((f) => ({ label: path.basename(f, path.extname(f)).replace(/[-_]+/g, ' '), sound: `media/sounds/${f}`, file: f }));
+  } catch {
+    return [];
+  }
+}
+
+// Bumped whenever a file in public/ changes, so open remotes reload themselves.
+let assetVersion = Date.now();
+
 // ---------- broadcasting ----------
 
 const clients = new Set();
@@ -102,6 +136,9 @@ function publicMeta() {
     playerActions: config.playerActions || [],
     announcements: (config.announcements || []).map((a) => ({ label: a.label || a.title })),
     soundboard: config.soundboard || [],
+    customSounds: customSounds(),
+    buttons: library.buttons,
+    assetVersion,
     pinRequired: Boolean(config.pin),
     controlUrls: lanUrls('/control'),
     canUndo: history.length > 0,
@@ -238,21 +275,42 @@ const actions = {
     fx({ kind: 'scene', scene: { ...scene, event: 'announcement' } });
   },
 
-  custom({ title, subtitle, theme, sound }) {
-    const t = String(title || '').trim().slice(0, 80);
-    if (!t) throw new Error('Type a message first');
-    const themes = ['red', 'gold', 'green', 'blue', 'purple', 'black'];
-    fx({
-      kind: 'scene',
-      scene: {
-        title: t,
-        subtitle: String(subtitle || '').trim().slice(0, 120),
-        theme: themes.includes(theme) ? theme : 'black',
-        sound: sound ? String(sound) : '',
-        duration: 7,
-        event: 'custom',
-      },
-    });
+  custom(payload) {
+    fx({ kind: 'scene', scene: { ...cleanCustom(payload), duration: 7, event: 'custom' } });
+  },
+
+  saveButton(payload) {
+    const b = { id: Date.now().toString(36), ...cleanCustom(payload) };
+    library.buttons.push(b);
+    saveLibrary();
+    broadcastState();
+  },
+
+  deleteButton({ id }) {
+    library.buttons = library.buttons.filter((b) => b.id !== id);
+    saveLibrary();
+    broadcastState();
+  },
+
+  playButton({ id }) {
+    const b = library.buttons.find((x) => x.id === id);
+    if (!b) throw new Error('Button not found');
+    fx({ kind: 'scene', scene: { ...b, duration: 7, event: 'custom' } });
+  },
+
+  deleteSound({ file }) {
+    const f = path.basename(String(file || ''));
+    const full = path.join(SOUNDS_DIR, f);
+    if (!AUDIO_EXT.includes(path.extname(f).toLowerCase()) || !fs.existsSync(full)) throw new Error('Sound not found');
+    fs.unlinkSync(full);
+    broadcastState();
+  },
+
+  toggleCement({ id }) {
+    const p = findPlayer(id);
+    p.cemented = !p.cemented;
+    if (p.cemented) showScene('cement', p);
+    return `${p.cemented ? 'cement' : 'uncement'} ${p.name}`;
   },
 
   sound({ sound }) {
@@ -291,6 +349,18 @@ const actions = {
     return 'reset night';
   },
 };
+
+function cleanCustom({ title, subtitle, theme, sound }) {
+  const t = String(title || '').trim().slice(0, 80);
+  if (!t) throw new Error('Type a message first');
+  const themes = ['red', 'gold', 'green', 'blue', 'purple', 'black'];
+  return {
+    title: t,
+    subtitle: String(subtitle || '').trim().slice(0, 120),
+    theme: themes.includes(theme) ? theme : 'black',
+    sound: sound ? String(sound) : '',
+  };
+}
 
 function runAction(name, payload) {
   if (name === 'undo') {
@@ -397,6 +467,41 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'POST' && p === '/api/upload') {
+    if (config.pin && req.headers['x-pin'] !== String(config.pin)) {
+      return sendJson(res, 401, { ok: false, error: 'Wrong PIN' });
+    }
+    const original = path.basename(url.searchParams.get('name') || 'sound.mp3');
+    const ext = path.extname(original).toLowerCase();
+    if (!AUDIO_EXT.includes(ext)) {
+      return sendJson(res, 400, { ok: false, error: `Use ${AUDIO_EXT.join(', ')}` });
+    }
+    const base = path.basename(original, path.extname(original)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sound';
+    fs.mkdirSync(SOUNDS_DIR, { recursive: true });
+    let name = base + ext;
+    for (let i = 2; fs.existsSync(path.join(SOUNDS_DIR, name)); i++) name = `${base}-${i}${ext}`;
+
+    const chunks = [];
+    let size = 0;
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > MAX_UPLOAD) {
+        sendJson(res, 413, { ok: false, error: 'File is over 15 MB' });
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => {
+      if (size > MAX_UPLOAD || res.writableEnded) return;
+      if (!size) return sendJson(res, 400, { ok: false, error: 'Empty file' });
+      fs.writeFileSync(path.join(SOUNDS_DIR, name), Buffer.concat(chunks));
+      broadcastState();
+      sendJson(res, 200, { ok: true, file: name });
+    });
+    return;
+  }
+
   if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
   if (p === '/') {
     res.writeHead(302, { Location: '/control' });
@@ -418,6 +523,23 @@ fs.watchFile(CONFIG_PATH, { interval: 1000 }, () => {
   config = loadConfig(config);
   console.log('[config] reloaded');
   broadcastState();
+});
+
+// Sounds dropped straight into media/sounds/ show up on the remote without a restart.
+let soundsTimer;
+fs.mkdirSync(SOUNDS_DIR, { recursive: true });
+fs.watch(SOUNDS_DIR, () => {
+  clearTimeout(soundsTimer);
+  soundsTimer = setTimeout(broadcastState, 300);
+});
+
+let assetsTimer;
+fs.watch(PUBLIC, () => {
+  clearTimeout(assetsTimer);
+  assetsTimer = setTimeout(() => {
+    assetVersion = Date.now();
+    broadcastState();
+  }, 300);
 });
 
 function shutdown() {

@@ -24,11 +24,15 @@ System Settings → Network → Firewall). Keep the lid open; `caffeinate -d` in
 
 | Tab | What it does |
 |---|---|
-| **Players** | Add a player (starts with 1 buy-in and gets a welcome screen). `+`/`−` buy-ins. Each rebuy flashes on the monitor. All-in / Fold / Scoop / Bad beat / Clock (30 s shot clock) / Hello. `⋯` renames, or type `DELETE` to remove. |
-| **Fun** | Custom message (big text, optional second line, colour, sound; the last 8 are kept as one-tap chips), soundboard, and announcements (bomb pot, straddle, last orbit, break). |
+| **Players** | Add a player (starts with 1 buy-in and gets a welcome screen). `+`/`−` buy-ins. Each rebuy flashes on the monitor. All-in / Fold / Scoop / Bad beat / Clock (30 s shot clock) / Cement (tap again to un-cement). `⋯` opens: welcome screen, rename, remove. |
+| **Custom** | Type a message (big text, optional second line, colour, sound) and **Show now**, or **Save as button** to keep it under *My buttons* for every game. *My sounds*: **＋ Add sound** uploads an audio file from your phone; tap it to play on the laptop's speakers. **Edit** deletes buttons or sounds. Built-in sounds and announcements are below. |
 | **Screen** | Switch the monitor between the welcome screen and the buy-in board. Shot clock without a name. Change blinds. Reset the night. |
 
 **↶ Undo** (top right) reverses the last change, as many times back as you need. **✕** (bottom right) clears whatever is on the monitor.
+
+Saved buttons live in `data/library.json` and survive **Reset night**. Your sounds live in `media/sounds/`; you can also copy files straight into that folder (mp3, m4a, wav, ogg, aac, up to 15 MB).
+
+The remote reloads itself when the code on the laptop changes.
 
 The night is saved to `data/state.json` after every tap, so restarting the laptop or server loses nothing.
 Use **Reset night** at the start of each game.
@@ -39,7 +43,7 @@ Edit while the server runs; the screens update within a second.
 
 - `buyIn`, `chipsPerBuyIn`, `blinds`: the game. Currently ₹1,000 = 2,000 chips at 20/50.
 - `pin`: set e.g. `"4321"` and the remote asks for it once.
-- `scenes`: what the monitor shows for each event (`welcome`, `rebuy`, `allin`, `fold`, `shipit`, `badbeat`).
+- `scenes`: what the monitor shows for each event (`welcome`, `rebuy`, `allin`, `fold`, `shipit`, `badbeat`, `cement`).
 - `playerScenes`: overrides for specific people, matched by name (case doesn't matter). This is where Ginna lives:
 
 ```json

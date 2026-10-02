@@ -92,8 +92,22 @@
   .swatches button { flex: 1; height: 36px; border-radius: 10px; border: 2px solid transparent; }
   .swatches button.on { border-color: var(--ink); }
   .send { padding: 14px; border-radius: 12px; background: var(--gold); color: #1a1206; font-weight: 800; }
-  .recent { display: flex; flex-wrap: wrap; gap: 6px; }
-  .recent button { padding: 8px 12px; border-radius: 99px; background: var(--panel-2); font-size: 14px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msg .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .msg .save { padding: 14px; border-radius: 12px; background: var(--panel-2); font-weight: 700; }
+  .h2row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+  .h2row h2 { margin-top: 0; }
+  .edit-link { background: none; color: var(--gold); font-size: 14px; font-weight: 700; padding: 4px; }
+  .grid button.mine { border-left: 5px solid var(--c, #2a2a2a); text-align: left; padding-left: 12px; overflow: hidden; text-overflow: ellipsis; }
+  .grid.editing button { border: 2px dashed var(--red); color: #ffb3b5; }
+  .grid button.add-sound { border: 2px dashed var(--line); color: var(--gold); background: transparent; }
+  .grid .hint { grid-column: 1 / -1; }
+  .acts button.cement.on { background: #8b877e; color: #141412; }
+  .tag { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 99px; background: #8b877e; color: #141412; vertical-align: middle; }
+  .hidden { display: none !important; }
+  #sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.6); display: flex; align-items: flex-end; }
+  #sheet .panel { width: 100%; background: var(--panel); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 8px; }
+  #sheet .sheet-title { font-weight: 800; font-size: 18px; padding: 4px 4px 8px; }
+  #sheet button { padding: 15px; border-radius: 12px; background: var(--panel-2); font-weight: 700; text-align: left; }
   .hint { color: var(--muted); font-size: 13px; line-height: 1.5; }
   .empty { text-align: center; padding: 28px 12px; color: var(--muted); }
 
@@ -133,9 +147,9 @@
     <div id="players"></div>
   </section>
 
-  <!-- SOUNDS -->
-  <section class="tab" id="tab-sounds">
-    <h2>Custom message</h2>
+  <!-- CUSTOM -->
+  <section class="tab" id="tab-custom">
+    <h2>New message</h2>
     <form class="msg" id="msg-form" autocomplete="off">
       <input id="msg-title" placeholder="Big text on the monitor" maxlength="80" enterkeyhint="send">
       <input id="msg-sub" placeholder="Smaller line underneath (optional)" maxlength="120" enterkeyhint="send">
@@ -148,10 +162,20 @@
         <button type="button" data-theme="purple" style="background:#6b2fb3" aria-label="Purple"></button>
       </div>
       <select id="msg-sound"></select>
-      <button class="send" type="submit">Show on monitor</button>
-      <div class="recent" id="msg-recent"></div>
+      <div class="btns">
+        <button class="send" type="submit">Show now</button>
+        <button class="save" type="button" id="msg-save">Save as button</button>
+      </div>
     </form>
-    <h2>Soundboard</h2>
+
+    <div class="h2row"><h2>My buttons</h2><button class="edit-link" data-edit="buttons">Edit</button></div>
+    <div class="grid" id="my-buttons"></div>
+
+    <div class="h2row"><h2>My sounds</h2><button class="edit-link" data-edit="sounds">Edit</button></div>
+    <div class="grid" id="my-sounds"></div>
+    <input type="file" id="sound-file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden>
+
+    <h2>Built-in sounds</h2>
     <div class="grid" id="soundboard"></div>
     <h2>Announcements</h2>
     <div class="grid" id="announcements"></div>
@@ -188,12 +212,22 @@
 
 <nav>
   <button class="on" data-tab="players">Players</button>
-  <button data-tab="sounds">Fun</button>
+  <button data-tab="custom">Custom</button>
   <button data-tab="screen">Screen</button>
   <button class="clear" id="clear" title="Clear the monitor">✕</button>
 </nav>
 
 <div id="toast"></div>
+
+<div id="sheet" class="hidden">
+  <div class="panel">
+    <div class="sheet-title" id="sheet-title"></div>
+    <button data-s="welcome">Show welcome screen</button>
+    <button data-s="rename">Rename</button>
+    <button data-s="remove" class="danger">Remove from table</button>
+    <button data-s="cancel">Cancel</button>
+  </div>
+</div>
 
 <script>
   const $ = (id) => document.getElementById(id);
@@ -252,27 +286,39 @@
       list.innerHTML = S.players.map((p) => `
         <div class="player" data-id="${p.id}">
           <div class="prow">
-            <div class="pname">${esc(p.name)}<small>${M.currency}${fmt(p.buyins * M.buyIn)} · ${fmt(p.buyins * M.chipsPerBuyIn)} chips</small></div>
+            <div class="pname">${esc(p.name)}${p.cemented ? '<span class="tag">🧱 CEMENT</span>' : ''}<small>${M.currency}${fmt(p.buyins * M.buyIn)} · ${fmt(p.buyins * M.chipsPerBuyIn)} chips</small></div>
             <div class="stepper">
               <button data-act="minus" aria-label="Remove a buy-in">−</button>
               <span class="n">${p.buyins}</span>
               <button class="plus" data-act="plus" aria-label="Add a buy-in">+</button>
             </div>
-            <button class="more" data-act="more" aria-label="Rename or remove">⋯</button>
+            <button class="more" data-act="more" aria-label="More options">⋯</button>
           </div>
           <div class="acts">
             ${(M.playerActions || []).map((a) => `<button class="${a.event === 'allin' ? 'allin' : ''}" data-act="event" data-event="${esc(a.event)}">${esc(a.label)}</button>`).join('')}
             <button data-act="clock">Clock</button>
-            <button data-act="welcome">Hello</button>
+            <button class="cement ${p.cemented ? 'on' : ''}" data-act="cement">Cement</button>
           </div>
         </div>`).join('');
     }
 
     const sel = $('msg-sound');
     const keep = sel.value;
-    sel.innerHTML = '<option value="">No sound</option>' + (M.soundboard || []).map((s) => `<option value="${esc(s.sound)}">${esc(s.label)}</option>`).join('');
+    const opts = (list) => list.map((s) => `<option value="${esc(s.sound)}">${esc(s.label)}</option>`).join('');
+    sel.innerHTML = '<option value="">No sound</option>'
+      + (M.customSounds.length ? `<optgroup label="My sounds">${opts(M.customSounds)}</optgroup>` : '')
+      + `<optgroup label="Built-in">${opts(M.soundboard || [])}</optgroup>`;
     if (keep) sel.value = keep;
-    renderRecent();
+
+    $('my-buttons').innerHTML = M.buttons.length
+      ? M.buttons.map((b) => `<button class="mine" data-id="${esc(b.id)}" style="--c:${THEME_COLORS[b.theme] || '#2a2a2a'}">${esc(b.title)}</button>`).join('')
+      : '<p class="hint">Type a message above and tap “Save as button” — it stays here for every game.</p>';
+    $('my-sounds').innerHTML = M.customSounds.map((s) => `<button data-file="${esc(s.file)}" data-sound="${esc(s.sound)}">${esc(s.label)}</button>`).join('')
+      + (editing.sounds ? '' : '<button class="add-sound" data-add="1">＋ Add sound</button>');
+    for (const k of ['buttons', 'sounds']) {
+      $(k === 'buttons' ? 'my-buttons' : 'my-sounds').classList.toggle('editing', editing[k]);
+      document.querySelector(`[data-edit="${k}"]`).textContent = editing[k] ? 'Done' : 'Edit';
+    }
     $('soundboard').innerHTML = (M.soundboard || []).map((s, i) => `<button data-i="${i}">${esc(s.label)}</button>`).join('');
     $('announcements').innerHTML = (M.announcements || []).map((a, i) => `<button data-i="${i}">${esc(a.label)}</button>`).join('');
 
@@ -305,23 +351,48 @@
       case 'minus': return act('buyin', { id, delta: -1 });
       case 'event': return act('trigger', { id, event: btn.dataset.event });
       case 'clock': return act('clock', { id, seconds: 30 });
-      case 'welcome': return act('welcome', { id });
-      case 'more': {
-        const name = prompt(`Rename ${p.name} — or type DELETE to remove them`, p.name);
-        if (name === null) return;
-        if (name.trim().toUpperCase() === 'DELETE') return act('removePlayer', { id });
-        if (name.trim() && name.trim() !== p.name) return act('renamePlayer', { id, name });
-      }
+      case 'cement': return act('toggleCement', { id });
+      case 'more': return openSheet(p);
     }
   });
 
-  // ---------- custom message ----------
-  let msgTheme = 'black';
-  function getRecent() { try { return JSON.parse(localStorage.getItem('pn-recent') || '[]'); } catch { return []; } }
-  function saveRecent(list) { try { localStorage.setItem('pn-recent', JSON.stringify(list.slice(0, 8))); } catch {} }
-  function renderRecent() {
-    $('msg-recent').innerHTML = getRecent().map((m, i) => `<button type="button" data-i="${i}">${esc(m.title)}</button>`).join('');
+  // ---------- player options sheet ----------
+  let sheetPlayer = null;
+  function openSheet(p) {
+    sheetPlayer = p;
+    $('sheet-title').textContent = p.name;
+    $('sheet').classList.remove('hidden');
   }
+  $('sheet').addEventListener('click', async (e) => {
+    const b = e.target.closest('button');
+    if (!b && e.target !== $('sheet')) return;
+    $('sheet').classList.add('hidden');
+    const p = sheetPlayer;
+    if (!b || !p) return;
+    if (b.dataset.s === 'welcome') act('welcome', { id: p.id });
+    if (b.dataset.s === 'rename') {
+      const name = prompt(`Rename ${p.name}`, p.name);
+      if (name && name.trim() && name.trim() !== p.name) act('renamePlayer', { id: p.id, name });
+    }
+    if (b.dataset.s === 'remove' && confirm(`Remove ${p.name} from the table? (Undo can bring them back.)`)) {
+      act('removePlayer', { id: p.id });
+    }
+  });
+
+  // ---------- custom tab ----------
+  const THEME_COLORS = { black: '#2a2a2a', red: '#b3171b', gold: '#b8860b', green: '#188a4f', blue: '#1f4f9e', purple: '#6b2fb3' };
+  const editing = { buttons: false, sounds: false };
+  let msgTheme = 'black';
+
+  function readMsg() {
+    return { title: $('msg-title').value.trim(), subtitle: $('msg-sub').value.trim(), theme: msgTheme, sound: $('msg-sound').value };
+  }
+  function clearMsg() {
+    $('msg-title').value = '';
+    $('msg-sub').value = '';
+    document.activeElement.blur();
+  }
+
   $('msg-theme').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -330,20 +401,64 @@
   });
   $('msg-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const m = { title: $('msg-title').value.trim(), subtitle: $('msg-sub').value.trim(), theme: msgTheme, sound: $('msg-sound').value };
+    const m = readMsg();
     if (!m.title) return toast('Type a message first');
     const r = await act('custom', m);
-    if (r && r.ok) {
-      saveRecent([m, ...getRecent().filter((x) => x.title !== m.title || x.subtitle !== m.subtitle)]);
-      renderRecent();
-      $('msg-title').value = '';
-      $('msg-sub').value = '';
-      document.activeElement.blur();
+    if (r && r.ok) clearMsg();
+  });
+  $('msg-save').addEventListener('click', async () => {
+    const m = readMsg();
+    if (!m.title) return toast('Type a message first');
+    const r = await act('saveButton', m);
+    if (r && r.ok) { clearMsg(); toast('Saved to My buttons'); }
+  });
+
+  document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
+    editing[b.dataset.edit] = !editing[b.dataset.edit];
+    render();
+  }));
+
+  $('my-buttons').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (editing.buttons) {
+      if (confirm(`Delete the “${b.textContent}” button?`)) act('deleteButton', { id: b.dataset.id });
+    } else {
+      act('playButton', { id: b.dataset.id });
     }
   });
-  $('msg-recent').addEventListener('click', (e) => {
+
+  $('my-sounds').addEventListener('click', (e) => {
     const b = e.target.closest('button');
-    if (b) act('custom', getRecent()[Number(b.dataset.i)]);
+    if (!b) return;
+    if (b.dataset.add) return $('sound-file').click();
+    if (editing.sounds) {
+      if (confirm(`Delete the sound “${b.textContent}”?`)) act('deleteSound', { file: b.dataset.file });
+    } else {
+      act('sound', { sound: b.dataset.sound });
+    }
+  });
+
+  $('sound-file').addEventListener('change', async () => {
+    const file = $('sound-file').files[0];
+    $('sound-file').value = '';
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) return toast('That file is over 15 MB');
+    toast(`Uploading ${file.name}…`);
+    const send = () => fetch(`/api/upload?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'X-Pin': getPin() }, body: file });
+    try {
+      let res = await send();
+      if (res.status === 401) {
+        const p = prompt('PIN for this remote:');
+        if (p === null) return;
+        setPin(p.trim());
+        res = await send();
+      }
+      const d = await res.json();
+      toast(d.ok ? 'Sound added — tap it to play' : d.error || 'Upload failed');
+    } catch {
+      toast('Upload failed — is the laptop on?');
+    }
   });
 
   $('undo').addEventListener('click', async () => {
@@ -386,6 +501,7 @@
   });
 
   // ---------- live connection ----------
+  let loadedVersion = null;
   function connect() {
     const es = new EventSource('/events');
     es.onopen = () => $('dot').classList.remove('off');
@@ -395,6 +511,9 @@
       if (msg.type === 'state') {
         S = msg.state;
         M = msg.meta;
+        // The code on the laptop changed — reload so this phone never runs an old remote.
+        if (loadedVersion && M.assetVersion !== loadedVersion) return location.reload();
+        loadedVersion = M.assetVersion;
         render();
       }
     };

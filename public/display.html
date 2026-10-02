@@ -47,7 +47,7 @@
             mask-image: linear-gradient(90deg, transparent 0, #000 2.5vw, #000 calc(100% - 2.5vw), transparent 100%);
   }
   #board.static { justify-content: center; }
-  #track { display: flex; gap: 1.4vw; padding: 0 2.5vw; width: max-content; will-change: transform; }
+  #track { display: flex; gap: 1.4vw; padding: 1.5vh 2.5vw; width: max-content; will-change: transform; }
   .set { display: grid; grid-template-rows: repeat(var(--tile-rows, 2), 26vh); grid-auto-flow: column; grid-auto-columns: 22vw; gap: 2.4vh 1.4vw; }
   .tile {
     container-type: size;
@@ -65,6 +65,25 @@
   .tile.top { border-color: rgba(232, 194, 106, 0.6); }
   .tile.top .name { color: var(--gold); }
   .tile.zero { opacity: 0.45; }
+  .tile { position: relative; }
+  .tile.cement {
+    background-color: #3b3a37;
+    background-image:
+      radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1.2px),
+      radial-gradient(rgba(0, 0, 0, 0.35) 1px, transparent 1.2px),
+      linear-gradient(135deg, #4a4945, #2c2b29);
+    background-size: 7px 7px, 11px 11px, 100% 100%;
+    background-position: 0 0, 3px 5px, 0 0;
+    border: 2px solid #8b877e;
+  }
+  .tile.cement .name, .tile.cement .n { color: #d9d4c9; }
+  .tile.cement::after {
+    content: "🧱 CEMENTED";
+    position: absolute; top: 0; right: 1.2vw; transform: translateY(-50%);
+    font-size: 0.85vw; font-weight: 800; letter-spacing: 0.14em;
+    padding: 0.5vh 0.7vw; border-radius: 99px;
+    background: #8b877e; color: #141412;
+  }
   .tile.bump { animation: bump 1.4s ease; }
   @keyframes bump {
     0%, 100% { background: var(--card); }
@@ -270,6 +289,7 @@
       p.buyins >= 3 ? 'heat-3' : p.buyins === 2 ? 'heat-2' : '',
       isTop ? 'top' : '',
       p.buyins === 0 ? 'zero' : '',
+      p.cemented ? 'cement' : '',
     ].join(' ');
     return `<div class="tile ${cls}" data-id="${p.id}">
       <div class="name">${esc(p.name)}</div>
