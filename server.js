@@ -46,9 +46,24 @@ const MIME = {
 
 // ---------- config & state ----------
 
+const EXAMPLE_CONFIG_PATH = path.join(ROOT, 'config.example.json');
+
+// config.json is yours and git-ignored; config.example.json ships the defaults.
+// First run copies the example; afterwards any key missing from config.json falls back to it.
 function loadConfig(fallback = {}) {
   try {
-    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    if (!fs.existsSync(CONFIG_PATH)) {
+      fs.copyFileSync(EXAMPLE_CONFIG_PATH, CONFIG_PATH);
+      console.log('[config] created config.json from config.example.json — edit it to make the game yours');
+    }
+    const defaults = JSON.parse(fs.readFileSync(EXAMPLE_CONFIG_PATH, 'utf8'));
+    const mine = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    return {
+      ...defaults,
+      ...mine,
+      blinds: { ...defaults.blinds, ...mine.blinds },
+      scenes: { ...defaults.scenes, ...mine.scenes },
+    };
   } catch (err) {
     console.error(`[config] could not read config.json — keeping previous config. ${err.message}`);
     return fallback;
@@ -196,6 +211,7 @@ function publicMeta() {
   return {
     title: config.title || 'Poker Night',
     currency: config.currency || '₹',
+    locale: config.locale || 'en-US',
     buyIn: config.buyIn || 1000,
     chipsPerBuyIn: config.chipsPerBuyIn || 2000,
     playerActions: config.playerActions || [],
@@ -222,7 +238,7 @@ function fx(payload) {
 
 // ---------- scenes ----------
 
-const fmt = (n) => Number(n).toLocaleString('en-IN');
+const fmt = (n) => Number(n).toLocaleString(config.locale || 'en-US');
 
 function pick(v) {
   return Array.isArray(v) ? v[Math.floor(Math.random() * v.length)] : v;

@@ -1,12 +1,23 @@
 {
   "name": "poker-night",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Home-game dashboard: buy-ins on the big screen, controlled from your phone.",
+  "description": "A home poker game dashboard: buy-ins, blinds and fun full-screen moments on a TV, run from your phone. Zero dependencies.",
+  "keywords": [
+    "poker",
+    "home-game",
+    "dashboard",
+    "buy-in",
+    "scoreboard",
+    "server-sent-events"
+  ],
+  "license": "MIT",
+  "author": "Bhavya Khandelwal",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "set-login": "node set-login.js"
+    "set-login": "node set-login.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"

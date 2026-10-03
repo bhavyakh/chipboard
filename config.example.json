@@ -1,0 +1,182 @@
+{
+  "title": "Poker Night",
+  "currency": "$",
+  "locale": "en-US",
+  "buyIn": 20,
+  "chipsPerBuyIn": 2000,
+  "blinds": {
+    "sb": 10,
+    "bb": 20
+  },
+  "welcomeOnJoin": true,
+  "playerActions": [
+    {
+      "event": "allin",
+      "label": "All-in",
+      "award": "Most all-ins"
+    },
+    {
+      "event": "fold",
+      "label": "Fold",
+      "award": "Nit of the night"
+    },
+    {
+      "event": "shipit",
+      "label": "Scoop",
+      "award": "Most scoops"
+    },
+    {
+      "event": "badbeat",
+      "label": "Bad beat",
+      "award": "Most bad beats"
+    }
+  ],
+  "scenes": {
+    "welcome": {
+      "title": "Welcome, {name}",
+      "subtitle": "{currency}{buyInFmt} buy-in · {chipsPerBuyInFmt} chips · blinds {blinds}",
+      "sound": "fanfare",
+      "theme": "gold",
+      "duration": 6
+    },
+    "rebuy": {
+      "title": "{name} reloads",
+      "subtitle": "Buy-in #{buyins} · {currency}{total} in tonight",
+      "sound": "chaching",
+      "theme": "green",
+      "duration": 5
+    },
+    "allin": {
+      "title": "{name} is ALL IN",
+      "subtitle": "All-in #{count} tonight",
+      "sound": "drumroll",
+      "theme": "red",
+      "duration": 7
+    },
+    "fold": {
+      "kicker": "{name}",
+      "title": "Folded.",
+      "subtitle": "Live to fight another hand",
+      "sound": "sadtrombone",
+      "theme": "black",
+      "duration": 5
+    },
+    "shipit": {
+      "kicker": "{name}",
+      "title": "Ship it!",
+      "subtitle": "Scoops the whole pot",
+      "sound": "chaching",
+      "theme": "gold",
+      "confetti": true,
+      "duration": 5
+    },
+    "badbeat": {
+      "kicker": "{name}",
+      "title": "Bad beat.",
+      "subtitle": "Thoughts and prayers",
+      "sound": "sadtrombone",
+      "theme": "blue",
+      "duration": 6
+    },
+    "cashout": {
+      "kicker": "{name}",
+      "title": "Cashed out",
+      "subtitle": "{cashChips} chips · {net}",
+      "sound": "chaching",
+      "theme": "green",
+      "duration": 6
+    },
+    "cement": {
+      "kicker": "{name}",
+      "title": "Cemented.",
+      "subtitle": "Not moving an inch",
+      "sound": "rimshot",
+      "theme": "black",
+      "duration": 5
+    }
+  },
+  "playerScenes": {
+    "alex": {
+      "allin": {
+        "title": "ALEX IS ALL IN",
+        "subtitle": "Custom screen for one player — rename the key to a real player's name",
+        "sound": "airhorn",
+        "theme": "red",
+        "image": "",
+        "duration": 8
+      }
+    }
+  },
+  "announcements": [
+    {
+      "label": "Bomb pot",
+      "title": "BOMB POT",
+      "subtitle": "Next hand · everyone in",
+      "sound": "airhorn",
+      "theme": "red",
+      "duration": 6
+    },
+    {
+      "label": "Straddle",
+      "title": "Straddle's on",
+      "subtitle": "UTG straddles to 40",
+      "sound": "ding",
+      "theme": "purple",
+      "duration": 5
+    },
+    {
+      "label": "Last orbit",
+      "title": "Last orbit",
+      "subtitle": "Make it count",
+      "sound": "ding",
+      "theme": "blue",
+      "duration": 6
+    },
+    {
+      "label": "Break",
+      "title": "Break",
+      "subtitle": "Back in 10",
+      "sound": "ding",
+      "theme": "black",
+      "duration": 10
+    }
+  ],
+  "soundboard": [
+    {
+      "label": "Airhorn",
+      "sound": "airhorn"
+    },
+    {
+      "label": "Cha-ching",
+      "sound": "chaching"
+    },
+    {
+      "label": "Sad trombone",
+      "sound": "sadtrombone"
+    },
+    {
+      "label": "Drumroll",
+      "sound": "drumroll"
+    },
+    {
+      "label": "Applause",
+      "sound": "applause"
+    },
+    {
+      "label": "Buzzer",
+      "sound": "buzzer"
+    },
+    {
+      "label": "Ba-dum-tss",
+      "sound": "rimshot"
+    },
+    {
+      "label": "Fanfare",
+      "sound": "fanfare"
+    },
+    {
+      "label": "Ding",
+      "sound": "ding"
+    }
+  ]
+}

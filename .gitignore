@@ -3,3 +3,4 @@ data/
 .DS_Store
 media/sounds/
 auth.json
+config.json

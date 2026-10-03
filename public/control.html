@@ -254,7 +254,7 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const fmt = (n) => Number(n).toLocaleString('en-IN');
+  const fmt = (n) => Number(n).toLocaleString(M ? M.locale : undefined);
   const buzz = () => navigator.vibrate && navigator.vibrate(12);
 
   let S = null;

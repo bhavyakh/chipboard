@@ -229,7 +229,7 @@
 <script src="/sounds.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
-  const fmt = (n) => Number(n).toLocaleString('en-IN');
+  const fmt = (n) => Number(n).toLocaleString(M ? M.locale : undefined);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   let S = null;     // server state
@@ -268,7 +268,7 @@
 
     if (lobby) {
       $('lobby-title').textContent = M.title;
-      $('lobby-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+      $('lobby-date').textContent = new Date().toLocaleDateString(M.locale, { weekday: 'long', day: 'numeric', month: 'long' });
       $('lobby-terms').innerHTML = `Blinds <b>${blindsText()}</b> · ${esc(terms)}`;
       $('here-label').textContent = S.players.length ? `At the table · ${S.players.length}` : 'Waiting for players…';
       $('here').innerHTML = S.players.map((p) => `<span>${esc(p.name)}</span>`).join('');
@@ -427,7 +427,7 @@
   }
 
   function tickClock() {
-    $('now').textContent = new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+    $('now').textContent = new Date().toLocaleTimeString(M ? M.locale : undefined, { hour: 'numeric', minute: '2-digit' });
     if (S && S.startedAt) {
       const mins = Math.floor((Date.now() - S.startedAt) / 60000);
       $('elapsed').textContent = `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`;
