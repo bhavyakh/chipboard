@@ -23,7 +23,7 @@ function freePort() {
 }
 
 async function startApp({ login } = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'poker-night-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chipboard-'));
   for (const f of ['server.js', 'set-login.js', 'config.example.json']) fs.copyFileSync(path.join(APP, f), path.join(dir, f));
   fs.cpSync(path.join(APP, 'public'), path.join(dir, 'public'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'media'));

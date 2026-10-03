@@ -1,5 +1,5 @@
 {
-  "name": "poker-night",
+  "name": "chipboard",
   "version": "1.1.0",
   "private": true,
   "description": "A home poker game dashboard: buy-ins, blinds and fun full-screen moments on a TV, run from your phone. Zero dependencies.",
@@ -13,6 +13,14 @@
   ],
   "license": "MIT",
   "author": "Bhavya Khandelwal",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhavyakh/chipboard.git"
+  },
+  "homepage": "https://github.com/bhavyakh/chipboard#readme",
+  "bugs": {
+    "url": "https://github.com/bhavyakh/chipboard/issues"
+  },
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

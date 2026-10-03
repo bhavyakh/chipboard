@@ -719,7 +719,7 @@ process.on('SIGTERM', shutdown);
 
 server.listen(PORT, '0.0.0.0', () => {
   const lan = lanUrls();
-  console.log('\n  ♠ Poker Night is running\n');
+  console.log('\n  ♠ Chipboard is running\n');
   console.log(`  Monitor (this laptop):  http://localhost:${PORT}/display`);
   if (lan.length) {
     for (const u of lan) console.log(`  Phone (same Wi-Fi):     ${u}/control`);

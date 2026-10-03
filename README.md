@@ -1,4 +1,4 @@
-# ♠ Poker Night
+# ♠ Chipboard
 
 A dashboard for your home poker game. A laptop plugged into a TV shows everyone's
 buy-ins, the blinds and full-screen moments ("ALEX IS ALL IN", airhorn included).
@@ -29,8 +29,8 @@ beyond Node.js.
 Requires [Node.js](https://nodejs.org) 18 or newer. There are no npm dependencies.
 
 ```bash
-git clone https://github.com/<you>/poker-night.git
-cd poker-night
+git clone https://github.com/bhavyakh/chipboard.git
+cd chipboard
 npm start
 ```
 
@@ -175,7 +175,7 @@ Give an event a list of scenes and a random one plays each time.
 
 ## Security notes
 
-Poker Night is built for a home network, not the internet.
+Chipboard is built for a home network, not the internet.
 
 - **Don't expose it publicly.** Don't port-forward it or put it on a public host. It
   speaks plain HTTP.
